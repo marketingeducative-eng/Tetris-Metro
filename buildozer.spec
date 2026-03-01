@@ -71,6 +71,11 @@ android.accept_sdk_license = True
 # Use NDK build for faster compilation
 android.use_ndk_build = 0
 
+# CRITICAL FIX: Enable pyjnius setup.py execution to generate config.pxi
+# Required for Cython compilation of pyjnius 1.4+
+# If set to 1 (ignore setup.py), Cython fails: "'config.pxi' not found"
+p4a_ignore_setuppy = 0
+
 [buildozer]
 
 # Log level (0 = error only, 1 = info, 2 = debug)
