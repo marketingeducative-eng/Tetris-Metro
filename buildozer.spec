@@ -1,0 +1,80 @@
+[app]
+
+# Application title
+title = Metro Tetris
+
+# Package name
+package.name = metrotetris
+
+# Package domain (needed for android/ios)
+package.domain = org.larosa
+
+# Source code where the main.py is located
+source.dir = .
+
+# Source files to include (all file types used by runtime)
+source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttf,otf,wav,ogg,mp3,md
+
+# Version
+version = 0.1
+
+# Application requirements
+# pyjnius>=1.4.0 required for Python 3.x compatibility
+requirements = python3,kivy,pyjnius>=1.4.0
+
+# Supported orientations: landscape, portrait, portrait-reverse, landscape-reverse
+orientation = portrait
+
+# Fullscreen mode (0=False, 1=True)
+fullscreen = 0
+
+# Android specific
+# Keep all android.* keys in [app] section so Buildozer reads them correctly
+
+# Android API to use
+android.api = 31
+
+# Minimum API required
+android.minapi = 21
+
+# Android SDK version to use
+android.sdk = 31
+
+# Android NDK version to use
+android.ndk = 25b
+
+# Permissions
+android.permissions = VIBRATE
+
+# Features
+android.features = 
+
+# App icon
+#icon.filename = %(source.dir)s/data/icon.png
+
+# Presplash
+#presplash.filename = %(source.dir)s/data/presplash.png
+
+# Android architecture (compile only arm64-v8a for speed, supports most devices)
+android.archs = arm64-v8a
+
+# Force arm64-v8a only - do NOT add additional architectures
+# This prevents armeabi-v7a compilation which is incompatible with current setup
+
+# SDK and NDK paths: commented out to use buildozer defaults (CI-friendly)
+# android.sdk_path = /home/xavi_delgado/.buildozer/android/platform/android-sdk
+# android.ndk_path = /home/xavi_delgado/.buildozer/android/platform/android-ndk-r25b
+
+# Accept SDK licenses automatically
+android.accept_sdk_license = True
+
+# Use NDK build for faster compilation
+android.use_ndk_build = 0
+
+[buildozer]
+
+# Log level (0 = error only, 1 = info, 2 = debug)
+log_level = 2
+
+# Display warning if buildozer is run as root
+warn_on_root = 1

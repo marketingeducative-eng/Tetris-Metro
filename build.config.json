@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tetris Metro - Build Configuration",
+  "description": "Centralized build configuration for reproducible Android builds",
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-28",
+  
+  "build": {
+    "profiles": {
+      "development": {
+        "description": "Fast iteration builds for development",
+        "buildozerSpec": "buildozer.spec",
+        "architecture": ["arm64-v8a"],
+        "debug": false,
+        "cleanBefore": false,
+        "validateBefore": true,
+        "expectedTime": "15-20 min",
+        "memoryRequired": "4GB"
+      },
+      "testing": {
+        "description": "Full validation builds for testing",
+        "buildozerSpec": "buildozer.spec",
+        "architecture": ["arm64-v8a", "armeabi-v7a"],
+        "debug": true,
+        "cleanBefore": true,
+        "validateBefore": true,
+        "expectedTime": "25-35 min",
+        "memoryRequired": "6GB"
+      },
+      "production": {
+        "description": "Optimized release builds for distribution",
+        "buildozerSpec": ".buildozer.spec.optimized",
+        "architecture": ["arm64-v8a", "armeabi-v7a"],
+        "debug": false,
+        "cleanBefore": true,
+        "validateBefore": true,
+        "splitApk": true,
+        "proguard": true,
+        "artifact": "aab",
+        "expectedTime": "30-45 min",
+        "memoryRequired": "8GB"
+      }
+    },
+    
+    "currentProfile": "development"
+  },
+  
+  "memory": {
+    "gradle": {
+      "description": "Gradle JVM memory settings",
+      "low": {
+        "label": "Low RAM (6GB system)",
+        "Xmx": "1536m",
+        "Xms": "384m",
+        "MaxMetaspaceSize": "384m",
+        "options": "-Xmx1536m -Xms384m -XX:MaxMetaspaceSize=384m -XX:+UseG1GC"
+      },
+      "medium": {
+        "label": "Medium RAM (8GB system)",
+        "Xmx": "2048m",
+        "Xms": "512m",
+        "MaxMetaspaceSize": "512m",
+        "options": "-Xmx2048m -Xms512m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError"
+      },
+      "high": {
+        "label": "High RAM (12GB+ system)",
+        "Xmx": "3072m",
+        "Xms": "1024m",
+        "MaxMetaspaceSize": "768m",
+        "options": "-Xmx3072m -Xms1024m -XX:MaxMetaspaceSize=768m -XX:+UseG1GC --parallel --max-workers=2"
+      }
+    },
+    
+    "currentSetting": "medium",
+    
+    "requirements": {
+      "minimum": {
+        "ram": "6GB",
+        "disk": "15GB",
+        "availableRam": "4GB"
+      },
+      "recommended": {
+        "ram": "12GB",
+        "disk": "30GB",
+        "availableRam": "6GB"
+      }
+    }
+  },
+  
+  "validation": {
+    "preBuild": {
+      "checkDependencies": true,
+      "checkMemory": true,
+      "validateConfig": true,
+      "optimizeAssets": false
+    },
+    
+    "thresholds": {
+      "minimumRamAvailable": 2048,
+      "minimumDiskFree": 10240,
+      "warningRamAvailable": 4096,
+      "warningDiskFree": 20480
+    }
+  },
+  
+  "optimization": {
+    "assets": {
+      "images": {
+        "compression": {
+          "tool": "pngquant",
+          "quality": "65-80",
+          "maxDimensions": {
+            "splash": [1080, 1920],
+            "background": [1080, 1920],
+            "ui": [512, 512],
+            "icon": [256, 256],
+            "sprite": [128, 128]
+          }
+        }
+      },
+      "audio": {
+        "format": "ogg",
+        "bitrate": {
+          "music": "96-128kbps",
+          "sfx": "64-96kbps"
+        },
+        "channels": {
+          "music": "stereo",
+          "sfx": "mono"
+        }
+      }
+    },
+    
+    "cleaning": {
+      "automatic": false,
+      "scheduleAfter": {
+        "failedBuilds": 2,
+        "days": 7
+      },
+      "keepDownloads": true,
+      "deepClean": false
+    }
+  },
+  
+  "android": {
+    "versions": {
+      "api": 33,
+      "minapi": 21,
+      "ndk": "25b",
+      "sdk": 33
+    },
+    
+    "architectures": {
+      "development": ["arm64-v8a"],
+      "production": ["arm64-v8a", "armeabi-v7a"],
+      "legacy": ["armeabi-v7a"],
+      "x86": ["x86", "x86_64"]
+    },
+    
+    "permissions": [
+      "VIBRATE",
+      "WAKE_LOCK"
+    ],
+    
+    "features": [
+      "android.hardware.touchscreen"
+    ]
+  },
+  
+  "requirements": {
+    "python": "3.8+",
+    "packages": [
+      "python3",
+      "kivy==2.3.0"
+    ],
+    "optional": [
+      "plyer",
+      "pillow",
+      "requests"
+    ],
+    "development": [
+      "buildozer",
+      "cython",
+      "psutil"
+    ]
+  },
+  
+  "scripts": {
+    "validate": "python scripts/check_dependencies.py",
+    "memoryProfile": "python tools/memory_profiler.py",
+    "buildValidate": "python tools/build_validator.py",
+    "optimizeAssets": "python tools/asset_optimizer.py",
+    "clean": "powershell -ExecutionPolicy Bypass -File scripts/clean_build.ps1",
+    "cleanDeep": "powershell -ExecutionPolicy Bypass -File scripts/clean_build.ps1 -DeepClean",
+    "buildDebug": "powershell -ExecutionPolicy Bypass -File scripts/build_android.ps1",
+    "buildRelease": "powershell -ExecutionPolicy Bypass -File scripts/build_android.ps1 -Release",
+    "buildClean": "powershell -ExecutionPolicy Bypass -File scripts/build_android.ps1 -Clean"
+  },
+  
+  "documentation": {
+    "buildGuide": "docs/BUILD_GUIDE.md",
+    "oomTroubleshooting": "docs/OOM_TROUBLESHOOTING.md",
+    "optimization": "docs/BUILD_OPTIMIZATION.md",
+    "tools": {
+      "memoryProfiler": "tools/memory_profiler.py",
+      "buildValidator": "tools/build_validator.py",
+      "assetOptimizer": "tools/asset_optimizer.py"
+    }
+  },
+  
+  "artifacts": {
+    "outputDir": "bin",
+    "naming": {
+      "debug": "tetris-metro-debug.apk",
+      "release": "tetris-metro-release.apk",
+      "bundle": "tetris-metro-release.aab"
+    },
+    "expectedSize": {
+      "debugMin": "15MB",
+      "debugMax": "30MB",
+      "releaseMin": "10MB",
+      "releaseMax": "20MB",
+      "bundleMin": "8MB",
+      "bundleMax": "15MB"
+    }
+  },
+  
+  "troubleshooting": {
+    "commonIssues": [
+      {
+        "issue": "OutOfMemoryError",
+        "solution": "Run clean_build.ps1 and check memory with memory_profiler.py",
+        "documentation": "docs/OOM_TROUBLESHOOTING.md"
+      },
+      {
+        "issue": "Build inconsistent",
+        "solution": "Use $env:PYTHONHASHSEED=0 for deterministic builds",
+        "documentation": "docs/BUILD_GUIDE.md#reproducible-builds"
+      },
+      {
+        "issue": "SDK download fails",
+        "solution": "Check internet connection, manually download if needed",
+        "documentation": "docs/BUILD_GUIDE.md#sdk-issues"
+      },
+      {
+        "issue": "APK too large",
+        "solution": "Run asset_optimizer.py and use split APKs or AAB",
+        "documentation": "docs/BUILD_OPTIMIZATION.md#apk-size"
+      }
+    ],
+    
+    "diagnosticCommands": [
+      "python scripts/check_dependencies.py",
+      "python tools/memory_profiler.py",
+      "python tools/build_validator.py"
+    ]
+  },
+  
+  "ci": {
+    "enabled": false,
+    "platform": "GitHub Actions",
+    "workflow": ".github/workflows/build.yml",
+    "triggers": ["push", "pull_request"],
+    "cachePaths": [
+      ".buildozer/android/platform/android-sdk",
+      ".buildozer/android/platform/android-ndk"
+    ]
+  },
+  
+  "metadata": {
+    "created": "2026-02-28",
+    "author": "Build Tools Team",
+    "configVersion": "1.0",
+    "compatibleWith": {
+      "buildozer": "1.4.0+",
+      "python": "3.8+",
+      "kivy": "2.3.0+"
+    }
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "meta": {
+    "language": "ca",
+    "version": "3.0",
+    "instruction": "SUBSTITUEIX COMPLETAMENT EL CONTINGUT ANTERIOR DE tourist_ca.json PER AQUEST FITXER."
+  },
+  "stations": {
+    "CATALUNYA": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["centre", "connexions", "shopping"],
+      "one_liner_ca": "Km 0 del centre: plaça, compres i enllaços.",
+      "tip_ca": "Bon punt per orientar-te: Rambla i Passeig de Gràcia a tocar.",
+      "image_url": "https://images.unsplash.com/photo-1562883676-8c6fbf063613?w=600&h=400&fit=crop"
+    },
+    "PASSEIG_DE_GRACIA": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["modernisme", "Gaudi", "shopping"],
+      "one_liner_ca": "Eix modernista: Casa Batlló i La Pedrera.",
+      "tip_ca": "Passeja amunt i avall del passeig; millor al capvespre.",
+      "image_url": "https://images.unsplash.com/photo-1557802411-07aedb7ce338?w=600&h=400&fit=crop"
+    },
+    "SAGRADA_FAMILIA": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["Gaudi", "icona"],
+      "one_liner_ca": "Temple de Gaudí, icona mundial.",
+      "tip_ca": "Reserva entrada amb antelació: hi ha cues sovint.",
+      "image_url": "https://images.unsplash.com/photo-1565008576549-bdde6db96e33?w=600&h=400&fit=crop"
+    },
+    "LICEU": {
+      "zone": "Ciutat Vella",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["Rambla", "cultura"],
+      "one_liner_ca": "La Rambla i el Gran Teatre del Liceu.",
+      "tip_ca": "Baixa aquí per Gòtic o Boqueria: és el cor turístic."
+    },
+    "JAUME_I": {
+      "zone": "Ciutat Vella",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["Gotic", "historia"],
+      "one_liner_ca": "Barri Gòtic: carrerons i places medievals.",
+      "tip_ca": "Perdre't pel Gòtic és el millor pla.",
+      "image_url": "https://images.unsplash.com/photo-1583604808076-7d0efc34e6b1?w=600&h=400&fit=crop"
+    },
+    "BARCELONETA": {
+      "zone": "Ciutat Vella",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["platja", "mar"],
+      "one_liner_ca": "Platja i passeig marítim.",
+      "tip_ca": "Ideal al capvespre per passejar i sopar vora el mar.",
+      "image_url": "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&h=400&fit=crop"
+    },
+    "ESPANYA": {
+      "zone": "Sants-Montjuïc",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["Montjuic", "museus"],
+      "one_liner_ca": "Porta d'entrada a Montjuïc.",
+      "tip_ca": "Perfecta per visitar museus i miradors."
+    },
+    "ARC_DE_TRIOMF": {
+      "zone": "Sant Martí",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["monument", "fotos"],
+      "one_liner_ca": "Arc monumental i accés a la Ciutadella.",
+      "tip_ca": "Ideal per fotos i passeig fins al Born."
+    },
+    "DRASSANES": {
+      "zone": "Ciutat Vella",
+      "highlight": true,
+      "priority": 5,
+      "tags": ["port", "maritim"],
+      "one_liner_ca": "Port Vell i Museu Marítim.",
+      "tip_ca": "Camina fins a Colom i continua cap al mar."
+    },
+    "PARAL_LEL": {
+      "zone": "Sants-Montjuïc",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["teatres", "nit"],
+      "one_liner_ca": "Teatres i ambient nocturn.",
+      "tip_ca": "Bona zona per sopar i veure espectacles."
+    },
+    "LESSEPS": {
+      "zone": "Gràcia",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["Park_Guell", "Gaudi"],
+      "one_liner_ca": "Accés pràctic cap al Park Güell.",
+      "tip_ca": "Puja caminant o en bus; reserva entrada."
+    },
+    "DIAGONAL": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["avinguda", "shopping"],
+      "one_liner_ca": "Gran avinguda amb serveis i hotels.",
+      "tip_ca": "Punt pràctic per desplaçaments ràpids."
+    },
+    "VALLCARCA": {
+      "zone": "Gràcia",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["Park_Guell", "miradors"],
+      "one_liner_ca": "Accés alternatiu al Park Güell.",
+      "tip_ca": "Més proper a l'entrada principal del parc."
+    },
+    "SANTS_ESTACIO": {
+      "zone": "Sants-Montjuïc",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["connexions", "trens"],
+      "one_liner_ca": "Estació principal de trens i busos.",
+      "tip_ca": "Punt clau per anar a l'aeroport o altres ciutats."
+    },
+    "POBLE_SEC": {
+      "zone": "Sants-Montjuïc",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["Montjuic", "restaurants"],
+      "one_liner_ca": "Barri amb restaurants i accés a Montjuïc.",
+      "tip_ca": "Carrer Blai per tapes; funicular a la muntanya."
+    },
+    "URQUINAONA": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["centre", "cultura"],
+      "one_liner_ca": "Palau de la Música i Eixample central.",
+      "tip_ca": "A 5 minuts del Palau de la Música Catalana."
+    },
+    "CIUTADELLA_|_VILA_OLIMPICA": {
+      "zone": "Sant Martí",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["platja", "olimpic"],
+      "one_liner_ca": "Port Olímpic i platja.",
+      "tip_ca": "Zona moderna amb restaurants vora el mar."
+    },
+    "VERDAGUER": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["Gaudi", "modernisme"],
+      "one_liner_ca": "Casa Vicens i Eixample residencial.",
+      "tip_ca": "Visita Casa Vicens, primera obra de Gaudí."
+    },
+    "FONTANA": {
+      "zone": "Gràcia",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["barri", "encant"],
+      "one_liner_ca": "Cor del barri de Gràcia.",
+      "tip_ca": "Barri de places amb molt d'ambient."
+    },
+    "GUINARDO_|_HOSPITAL_DE_SANT_PAU": {
+      "zone": "Eixample",
+      "highlight": true,
+      "priority": 4,
+      "tags": ["modernisme", "cultura"],
+      "one_liner_ca": "Hospital de Sant Pau modernista (UNESCO).",
+      "tip_ca": "Recinte modernista; entrada amb guia recomanada."
+    },
+    "GLORIES": {
+      "zone": "Sant Martí",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["modern", "disseny"],
+      "one_liner_ca": "Torre Glòries i Museu del Disseny.",
+      "tip_ca": "Zona en transformació amb espais contemporanis."
+    },
+    "SANT_ANTONI": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["mercat", "tapes"],
+      "one_liner_ca": "Mercat de Sant Antoni i vida local.",
+      "tip_ca": "Mercat renovat i molt bon ambient de barri."
+    },
+    "MARINA": {
+      "zone": "Sant Martí",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["platja", "passeig"],
+      "one_liner_ca": "Proper a la platja i al Zoo.",
+      "tip_ca": "Bon punt per anar caminant fins al mar."
+    },
+    "MONUMENTAL": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["arquitectura", "historia"],
+      "one_liner_ca": "Antiga plaça de braus, ara centre cultural.",
+      "tip_ca": "Edifici modernista que val la pena veure."
+    },
+    "BOGATELL": {
+      "zone": "Sant Martí",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["platja", "esports"],
+      "one_liner_ca": "Platja tranquil·la i esportiva.",
+      "tip_ca": "Menys turística que Barceloneta; ideal per relaxar."
+    },
+    "UNIVERSITAT": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["centre", "connexions"],
+      "one_liner_ca": "Plaça Universitat i Gran Via.",
+      "tip_ca": "Zona central amb bones connexions."
+    },
+    "ROCAFORT": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["residencial", "restaurants"],
+      "one_liner_ca": "Eixample residencial amb bon ambient.",
+      "tip_ca": "Zona autèntica amb restaurants locals."
+    },
+    "HOSPITAL_CLINIC": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["Diagonal", "serveis"],
+      "one_liner_ca": "Diagonal alta amb hotels i serveis.",
+      "tip_ca": "Zona pràctica per allotjament i desplaçaments."
+    },
+    "PALAU_REIAL": {
+      "zone": "Les Corts",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["Pedralbes", "jardins"],
+      "one_liner_ca": "Palau de Pedralbes i jardins.",
+      "tip_ca": "Visita els jardins i el Museu de Ceràmica."
+    },
+    "LES_CORTS": {
+      "zone": "Les Corts",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["Camp_Nou", "futbol"],
+      "one_liner_ca": "Camp Nou i Barça Museum.",
+      "tip_ca": "Parada pel Camp Nou Experience i museu."
+    },
+    "MARIA_CRISTINA": {
+      "zone": "Les Corts",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["Pedralbes", "elegant"],
+      "one_liner_ca": "Zona elegant i universitària.",
+      "tip_ca": "Accés a Pedralbes i Diagonal alta."
+    },
+    "ZONA_UNIVERSITARIA": {
+      "zone": "Les Corts",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["campus", "esports"],
+      "one_liner_ca": "Campus universitari i Miniestadi.",
+      "tip_ca": "Fi de la L3; zona universitària tranquil·la."
+    },
+    "PLACA_DE_SANTS": {
+      "zone": "Sants-Montjuïc",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["local", "mercat"],
+      "one_liner_ca": "Plaça central del barri de Sants.",
+      "tip_ca": "Ambient de barri autèntic i molt local."
+    },
+    "CLOT": {
+      "zone": "Sant Martí",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["connexions", "local"],
+      "one_liner_ca": "Barri tradicional amb bon transport.",
+      "tip_ca": "Zona residencial amb caràcter propi."
+    },
+    "TETUAN": {
+      "zone": "Eixample",
+      "highlight": false,
+      "priority": 3,
+      "tags": ["Passeig_Sant_Joan", "modernisme"],
+      "one_liner_ca": "Passeig de Sant Joan i mercat.",
+      "tip_ca": "Passeig amb arbres i arquitectura modernista."
+    },
+    "AEROPORT_T1": {
+      "zone": "Aeroport",
+      "highlight": false,
+      "priority": 2,
+      "tags": ["aeroport", "connexions"],
+      "one_liner_ca": "Terminal 1 de l'aeroport del Prat.",
+      "tip_ca": "L9 Sud connecta amb el centre en 30 minuts."
+    },
+    "AEROPORT_T2": {
+      "zone": "Aeroport",
+      "highlight": false,
+      "priority": 2,
+      "tags": ["aeroport", "connexions"],
+      "one_liner_ca": "Terminal 2 de l'aeroport del Prat.",
+      "tip_ca": "Bus gratuït entre terminals cada 5-7 minuts."
+    },
+    "FIRA": {
+      "zone": "L'Hospitalet",
+      "highlight": false,
+      "priority": 2,
+      "tags": ["fires", "congressos"],
+      "one_liner_ca": "Recinte firal de Montjuïc.",
+      "tip_ca": "Esdeveniments i congressos internacionals."
+    },
+    "EUROPA_|_FIRA": {
+      "zone": "L'Hospitalet",
+      "highlight": false,
+      "priority": 2,
+      "tags": ["fires", "modern"],
+      "one_liner_ca": "Fira de Barcelona Gran Via.",
+      "tip_ca": "Gran recinte firal i de congressos modern."
+    },
+    "LA_SAGRERA": {
+      "zone": "Sant Andreu",
+      "highlight": false,
+      "priority": 2,
+      "tags": ["hub", "futur"],
+      "one_liner_ca": "Futura gran estació intermodal.",
+      "tip_ca": "En construcció; serà hub de transport clau."
+    }
+  }
+}

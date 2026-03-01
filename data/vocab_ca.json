@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "transport_bitllet",
+      "category": "Transport",
+      "word": "bitllet",
+      "sentence": "Vull un bitllet senzill per a la L3."
+    },
+    {
+      "id": "transport_andana",
+      "category": "Transport",
+      "word": "andana",
+      "sentence": "Ens esperem a l'andana de la direcció Trinitat Nova."
+    },
+    {
+      "id": "transport_direccio",
+      "category": "Transport",
+      "word": "direcció",
+      "sentence": "Quina direcció va cap a Zona Universitària?"
+    },
+    {
+      "id": "transport_sortida",
+      "category": "Transport",
+      "word": "sortida",
+      "sentence": "La sortida és al final del passadís."
+    },
+    {
+      "id": "social_perdona",
+      "category": "Social",
+      "word": "perdona",
+      "sentence": "Perdona, em pots ajudar?"
+    },
+    {
+      "id": "social_gracies",
+      "category": "Social",
+      "word": "gràcies",
+      "sentence": "Gràcies per l'ajuda."
+    },
+    {
+      "id": "social_bon_dia",
+      "category": "Social",
+      "word": "bon dia",
+      "sentence": "Bon dia, com estàs?"
+    },
+    {
+      "id": "food_cafe",
+      "category": "Food",
+      "word": "cafè",
+      "sentence": "Un cafè amb llet, si us plau."
+    },
+    {
+      "id": "food_entrepa",
+      "category": "Food",
+      "word": "entrepà",
+      "sentence": "He comprat un entrepà al bar de l'estació."
+    },
+    {
+      "id": "food_aigua",
+      "category": "Food",
+      "word": "aigua",
+      "sentence": "Voldria una aigua, sisplau."
+    },
+    {
+      "id": "housing_pis",
+      "category": "Housing",
+      "word": "pis",
+      "sentence": "Busco un pis a prop del metro."
+    },
+    {
+      "id": "housing_lloguer",
+      "category": "Housing",
+      "word": "lloguer",
+      "sentence": "El lloguer és massa alt."
+    },
+    {
+      "id": "housing_contracte",
+      "category": "Housing",
+      "word": "contracte",
+      "sentence": "He de signar el contracte de lloguer."
+    },
+    {
+      "id": "university_facultat",
+      "category": "University",
+      "word": "facultat",
+      "sentence": "La facultat és a dues parades."
+    },
+    {
+      "id": "university_classe",
+      "category": "University",
+      "word": "classe",
+      "sentence": "Avui tinc classe a les deu."
+    },
+    {
+      "id": "university_matricula",
+      "category": "University",
+      "word": "matrícula",
+      "sentence": "La matrícula s'obre al juliol."
+    }
+  ]
+}

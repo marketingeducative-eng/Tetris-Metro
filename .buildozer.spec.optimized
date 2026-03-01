@@ -1,0 +1,216 @@
+[app]
+
+# ============================================================================
+# BASIC APPLICATION INFO
+# ============================================================================
+
+# Application title
+title = Metro Tetris
+
+# Package name (unique identifier)
+package.name = metrotetris
+
+# Package domain (needed for android/ios)
+package.domain = org.larosa
+
+# Source code where the main.py is located
+source.dir = .
+
+# Source files to include (OPTIMIZED: only necessary extensions)
+source.include_exts = py,png,jpg,kv,atlas,json,ogg,ttf
+
+# Source files/dirs to EXCLUDE (OPTIMIZED: reduce APK size)
+source.exclude_dirs = tests, docs, .vscode, tools, scripts, __pycache__, *.egg-info, .git, .buildozer, bin
+source.exclude_patterns = test_*,*.spec,*.md,.git*,.DS_Store,*.pyc,*.pyo
+
+# Version
+version = 0.1
+
+# Application requirements (OPTIMIZED: specific versions for reproducibility)
+requirements = python3,kivy==2.3.0
+
+# Add additional requirements as needed:
+# requirements = python3,kivy==2.3.0,plyer,pillow
+
+# Supported orientations: landscape, portrait, portrait-reverse, landscape-reverse
+orientation = portrait
+
+# Fullscreen mode (0=False, 1=True)
+fullscreen = 1
+
+# Presplash configuration
+#presplash.filename = %(source.dir)s/assets/presplash.png
+
+# Icon configuration
+#icon.filename = %(source.dir)s/assets/icon.png
+
+# ============================================================================
+# ANDROID SPECIFIC CONFIGURATION
+# ============================================================================
+
+[app:android]
+
+# Android API to use (OPTIMIZED: Modern API for better features)
+android.api = 33
+
+# Minimum API required (21 = Android 5.0, good balance)
+android.minapi = 21
+
+# Android SDK version (OPTIMIZED: Match with API)
+android.sdk = 33
+
+# Android NDK version to use
+android.ndk = 25b
+
+# Permissions (OPTIMIZED: Only what's needed)
+android.permissions = VIBRATE,WAKE_LOCK
+
+# Features (OPTIMIZED: Explicit requirements)
+android.features = android.hardware.touchscreen
+
+# Architecture to build for (OPTIMIZED: see notes below)
+# DEVELOPMENT: Use only one for faster builds
+android.archs = arm64-v8a
+
+# PRODUCTION: Use multiple with split APKs
+# android.archs = arm64-v8a,armeabi-v7a
+# android.enable_split = 1
+
+# ============================================================================
+# MEMORY OPTIMIZATION (CRITICAL FOR OOM PREVENTION)
+# ============================================================================
+
+# Gradle options (CRITICAL: Memory settings to prevent OOM)
+# Xmx: Maximum heap size (2GB safe for most systems)
+# Xms: Initial heap size (512MB)
+# MaxMetaspaceSize: Metadata memory (512MB)
+# UseG1GC: Better garbage collection
+# HeapDumpOnOutOfMemoryError: Debug dumps if OOM occurs
+android.gradle_options = -Xmx2048m -Xms512m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError
+
+# If you have MORE RAM (12GB+), you can use:
+# android.gradle_options = -Xmx3072m -Xms1024m -XX:MaxMetaspaceSize=768m -XX:+UseG1GC --parallel --max-workers=2
+
+# If you have LESS RAM (6GB), use:
+# android.gradle_options = -Xmx1536m -Xms384m -XX:MaxMetaspaceSize=384m -XX:+UseG1GC
+
+# ============================================================================
+# BUILD OPTIMIZATION
+# ============================================================================
+
+# Accept SDK license automatically
+android.accept_sdk_license = True
+
+# Skip byte compile (faster builds, slightly larger APK)
+android.no-byte-compile-python = False
+
+# Don't compile .py to .pyc in APK
+# p4a.py-compile = False
+
+# Use debug or release mode
+# 0 = no debug symbols (smaller, faster build)
+# 1 = with debug symbols (easier debugging, slower)
+android.debug = 0
+
+# Release artifact type
+# apk = Traditional APK (for testing, sideload)
+# aab = Android App Bundle (for Google Play, smaller)
+android.release_artifact = apk
+
+# For production builds to Google Play, use:
+# android.release_artifact = aab
+
+# ============================================================================
+# ADVANCED OPTIONS
+# ============================================================================
+
+# Bootstrap to use (sdl2 is standard for Kivy)
+# p4a.bootstrap = sdl2
+
+# Python-for-android repository (normally auto-managed)
+# p4a.source_dir = 
+
+# Local recipes directory (if you have custom recipes)
+# p4a.local_recipes = ./recipes
+
+# Whitelist for permissions (automatically determined if empty)
+# android.whitelist_src = 
+
+# Blacklist permissions
+# android.permissions_blacklist = 
+
+# Add Java .jar files to classpath
+# android.add_jars = 
+
+# Add Java directory to classpath
+# android.add_gradle_repositories = 
+
+# Additional Android AARs
+# android.gradle_dependencies = 
+
+# ============================================================================
+# PROGUARD (Release Optimization)
+# ============================================================================
+
+# Enable ProGuard (code minification/obfuscation)
+# Only for release builds
+# android.enable_proguard = 1
+# android.proguard_file = proguard-rules.pro
+
+# ============================================================================
+# SERVICES (Background tasks)
+# ============================================================================
+
+# Android services (if needed)
+# services = myservice:myservice.py:foreground
+
+# ============================================================================
+# BUILDOZER
+# ============================================================================
+
+[buildozer]
+
+# Log level (0 = error only, 1 = info, 2 = debug)
+log_level = 1
+
+# Display warning if buildozer is run as root
+warn_on_root = 0
+
+# Build directory
+build_dir = ./.buildozer
+
+# Binary directory (for final APK/AAB)
+bin_dir = ./bin
+
+# ============================================================================
+# NOTES & RECOMMENDATIONS
+# ============================================================================
+
+# MEMORY MANAGEMENT:
+# - If build fails with OOM, run: .\scripts\clean_build.ps1
+# - Monitor: python tools\memory_profiler.py
+# - Validate: python tools\build_validator.py
+
+# DEVELOPMENT WORKFLOW:
+# 1. Use android.archs = arm64-v8a for fast iterations
+# 2. Keep android.debug = 0 unless actively debugging
+# 3. Only clean (.buildozer) when necessary
+# 4. Use release builds only for production
+
+# PRODUCTION WORKFLOW:
+# 1. Set android.archs = arm64-v8a,armeabi-v7a
+# 2. Enable android.enable_split = 1
+# 3. Consider android.release_artifact = aab
+# 4. Enable ProGuard if needed
+# 5. Always test on real devices
+
+# ASSET OPTIMIZATION:
+# - Compress PNGs: pngquant, optipng
+# - Convert audio to OGG: ffmpeg
+# - Use atlas for sprites
+# - See: docs\BUILD_OPTIMIZATION.md
+
+# TROUBLESHOOTING:
+# - OOM errors: docs\OOM_TROUBLESHOOTING.md
+# - General issues: docs\BUILD_GUIDE.md
+# - Run diagnostics: python scripts\check_dependencies.py

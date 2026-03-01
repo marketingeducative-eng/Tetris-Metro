@@ -1,0 +1,281 @@
+{
+  "network": "Metro de Barcelona",
+  "lines": [
+    {
+      "id": "L1",
+      "name": "Línia 1",
+      "color": "#E3000F",
+      "endpoints": {
+        "from": "Hospital de Bellvitge",
+        "to": "Fondo"
+      },
+      "stations": [
+        "Hospital de Bellvitge",
+        "Bellvitge",
+        "Av. Carrilet",
+        "Rambla Just Oliveras",
+        "Can Serra",
+        "Florida",
+        "Torrassa",
+        "Santa Eulàlia",
+        "Mercat Nou",
+        "Plaça de Sants",
+        "Sants Estació",
+        "Hostafrancs",
+        {"name": "Espanya", "tourist_highlight": true, "tourist_info": "Font Màgica i accés a Montjuïc."},
+        "Rocafort",
+        "Urgell",
+        "Universitat",
+        {"name": "Catalunya", "tourist_highlight": true, "tourist_info": "Centre de la ciutat i accés a La Rambla."},
+        "Urquinaona",
+        {"name": "Arc de Triomf", "tourist_highlight": true, "tourist_info": "Arc monumental i entrada al Parc de la Ciutadella."},
+        "Marina",
+        "Glòries",
+        "Clot",
+        "Navas",
+        "La Sagrera",
+        "Fabra i Puig",
+        "Sant Andreu",
+        "Torras i Bages",
+        "Trinitat Vella",
+        "Baró de Viver",
+        "Santa Coloma",
+        "Fondo"
+      ]
+    },
+    {
+      "id": "L2",
+      "name": "Línia 2",
+      "color": "#9B3296",
+      "endpoints": {
+        "from": "Paral·lel",
+        "to": "Badalona Pompeu Fabra"
+      },
+      "stations": [
+        {"name": "Paral·lel", "tourist_highlight": true, "tourist_info": "Zona de teatres i porta al Paral·lel."},
+        "Sant Antoni",
+        "Universitat",
+        {"name": "Passeig de Gràcia", "tourist_highlight": true, "tourist_info": "Passeig modernista amb la Casa Batlló i la Pedrera."},
+        "Tetuan",
+        "Monumental",
+        {"name": "Sagrada Família", "tourist_highlight": true, "tourist_info": "Temple de Gaudí, símbol de Barcelona."},
+        "Encants",
+        "Clot",
+        "Bac de Roda",
+        "Sant Martí",
+        "La Pau",
+        "Verneda",
+        "Artigues | Sant Adrià",
+        "Sant Roc",
+        "Gorg",
+        "Pep Ventura",
+        "Badalona Pompeu Fabra"
+      ]
+    },
+    {
+      "id": "L3",
+      "name": "Línia 3",
+      "color": "#00923F",
+      "endpoints": {
+        "from": "Zona Universitària",
+        "to": "Trinitat Nova"
+      },
+      "stations": [
+        {"name": "Zona Universitària", "description": "Campus universitari", "zone": "Les Corts"},
+        {"name": "Palau Reial", "description": "Palau de Pedralbes", "zone": "Les Corts"},
+        {"name": "Maria Cristina", "description": "Zona comercial", "zone": "Les Corts"},
+        {"name": "Les Corts", "description": "Camp Nou", "zone": "Les Corts"},
+        {"name": "Plaça del Centre", "description": "Barri de les Corts", "zone": "Les Corts"},
+        {"name": "Sants Estació", "description": "Estació de trens", "zone": "Sants-Montjuïc"},
+        {"name": "Tarragona", "description": "Zona Tarragona", "zone": "Sants-Montjuïc"},
+        {"name": "Espanya", "description": "Plaça Espanya", "zone": "Sants-Montjuïc"},
+        {"name": "Poble Sec", "description": "Montjuïc", "zone": "Sants-Montjuïc"},
+        {"name": "Paral·lel", "description": "Zona teatres", "zone": "Sants-Montjuïc"},
+        {"name": "Drassanes", "description": "Port Vell", "zone": "Ciutat Vella", "tourist_highlight": true, "tourist_info": "Accés al Port Vell i al Museu Marítim."},
+        {"name": "Liceu", "description": "Gran Teatre del Liceu", "zone": "Ciutat Vella", "tourist_highlight": true, "tourist_info": "Teatre històric al cor de La Rambla."},
+        {"name": "Catalunya", "description": "Plaça Catalunya", "zone": "Eixample"},
+        {"name": "Passeig de Gràcia", "description": "Illa de la Discòrdia", "zone": "Eixample", "tourist_highlight": true, "tourist_info": "Modernisme i botigues emblemàtiques del passeig."},
+        {"name": "Diagonal", "description": "Avinguda Diagonal", "zone": "Eixample"},
+        {"name": "Fontana", "description": "Barri de Gràcia", "zone": "Gràcia"},
+        {"name": "Lesseps", "description": "Plaça Lesseps", "zone": "Gràcia"},
+        {"name": "Vallcarca", "description": "Parc Güell", "zone": "Gràcia", "tourist_highlight": true, "tourist_info": "Accés al Parc Güell i miradors de Gràcia."},
+        {"name": "Penitents", "description": "Barri Penitents", "zone": "Gràcia"},
+        {"name": "Vall d'Hebron", "description": "Hospital Vall d'Hebron", "zone": "Nou Barris"},
+        {"name": "Montbau", "description": "Zona residencial", "zone": "Nou Barris"},
+        {"name": "Mundet", "description": "Campus Mundet", "zone": "Nou Barris"},
+        {"name": "Valldaura", "description": "Barri de la Guineueta", "zone": "Nou Barris"},
+        {"name": "Canyelles", "description": "Barri Canyelles", "zone": "Nou Barris"},
+        {"name": "Roquetes", "description": "Barri Roquetes", "zone": "Nou Barris"},
+        {"name": "Trinitat Nova", "description": "Plaça Trinitat", "zone": "Nou Barris"}
+      ]
+    },
+    {
+      "id": "L4",
+      "name": "Línia 4",
+      "color": "#FBBB00",
+      "endpoints": {
+        "from": "Trinitat Nova",
+        "to": "La Pau"
+      },
+      "stations": [
+        "Trinitat Nova",
+        "Via Júlia",
+        "Llucmajor",
+        "Maragall",
+        "Guinardó | Hospital de Sant Pau",
+        "Alfons X",
+        "Joanic",
+        "Verdaguer",
+        "Girona",
+        "Passeig de Gràcia",
+        "Urquinaona",
+        "Jaume I",
+        "Barceloneta",
+        "Ciutadella | Vila Olímpica",
+        "Bogatell",
+        "Llacuna",
+        "Poblenou",
+        "Selva de Mar",
+        "El Maresme | Fòrum",
+        "Besòs Mar",
+        "Besòs",
+        "La Pau"
+      ]
+    },
+    {
+      "id": "L5",
+      "name": "Línia 5",
+      "color": "#005EB8",
+      "endpoints": {
+        "from": "Cornellà Centre",
+        "to": "Vall d'Hebron"
+      },
+      "stations": [
+        "Cornellà Centre",
+        "Gavarra",
+        "Sant Ildefons",
+        "Can Boixeres",
+        "Can Vidalet",
+        "Pubilla Cases",
+        "Collblanc",
+        "Badal",
+        "Plaça de Sants",
+        "Sants Estació",
+        "Entença",
+        "Hospital Clínic",
+        "Diagonal",
+        "Verdaguer",
+        "Sagrada Família",
+        "Sant Pau | Dos de Maig",
+        "Camp de l'Arpa",
+        "La Sagrera",
+        "Congrés",
+        "Maragall",
+        "Virrei Amat",
+        "Vilapicina",
+        "Horta",
+        "El Carmel",
+        "Vall d'Hebron"
+      ]
+    },
+    {
+      "id": "L9N",
+      "name": "Línia 9 Nord",
+      "color": "#F7921E",
+      "endpoints": {
+        "from": "La Sagrera",
+        "to": "Can Zam"
+      },
+      "stations": [
+        "La Sagrera",
+        "Onze de Setembre",
+        "Bon Pastor",
+        "Can Peixauet",
+        "Santa Rosa",
+        "Fondo",
+        "Església Major",
+        "Singuerlin",
+        "Can Zam"
+      ]
+    },
+    {
+      "id": "L9S",
+      "name": "Línia 9 Sud",
+      "color": "#F7921E",
+      "endpoints": {
+        "from": "Aeroport T1",
+        "to": "Zona Universitària"
+      },
+      "stations": [
+        "Aeroport T1",
+        "Aeroport T2",
+        "Mas Blau",
+        "Parc Nou",
+        "Cèntric",
+        "El Prat Estació",
+        "Les Moreres",
+        "Mercabarna",
+        "Parc Logístic",
+        "Fira",
+        "Europa | Fira",
+        "Can Tries | Gornal",
+        "Torrassa",
+        "Collblanc",
+        "Badal",
+        "Zona Universitària"
+      ]
+    },
+    {
+      "id": "L10N",
+      "name": "Línia 10 Nord",
+      "color": "#00A0E3",
+      "endpoints": {
+        "from": "La Sagrera",
+        "to": "Gorg"
+      },
+      "stations": [
+        "La Sagrera",
+        "Onze de Setembre",
+        "Bon Pastor",
+        "Llefi",
+        "La Salut",
+        "Gorg"
+      ]
+    },
+    {
+      "id": "L10S",
+      "name": "Línia 10 Sud",
+      "color": "#00A0E3",
+      "endpoints": {
+        "from": "Collblanc",
+        "to": "Foc"
+      },
+      "stations": [
+        "Collblanc",
+        "Badal",
+        "Plaça del Centre",
+        "Ildefons Cerdà",
+        "Foneria",
+        "La Bordeta",
+        "Magòria | La Campana",
+        "Foc"
+      ]
+    },
+    {
+      "id": "L11",
+      "name": "Línia 11",
+      "color": "#A2C617",
+      "endpoints": {
+        "from": "Trinitat Nova",
+        "to": "Can Cuiàs"
+      },
+      "stations": [
+        "Trinitat Nova",
+        "Casa de l'Aigua",
+        "Torre Baró | Vallbona",
+        "Ciutat Meridiana",
+        "Can Cuiàs"
+      ]
+    }
+  ]
+}

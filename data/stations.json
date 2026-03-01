@@ -1,0 +1,212 @@
+{
+  "version": "1.0",
+  "metro_lines": {
+    "L1": {
+      "name": "Línia 1",
+      "color": "#E2001A",
+      "stations": ["Fondo", "Santa Eulàlia", "Torrassa", "Collblanc", "Badal", "Plaça de Sants", "Mercat Nou", "Hostafrancs", "Espanya", "Rocafort", "Urgell", "Universitat", "Catalunya", "Urquinaona", "Arc de Triomf", "Marina", "Glòries", "Clot", "Navas", "La Sagrera", "Fabra i Puig", "Sant Andreu", "Torras i Bages", "Trinitat Vella", "Baró de Viver", "Santa Coloma", "Fondo"]
+    },
+    "L2": {
+      "name": "Línia 2",
+      "color": "#9B3FA0",
+      "stations": ["Paral·lel", "Sant Antoni", "Universitat", "Passeig de Gràcia", "Tetuan", "Monumental", "Sagrada Família", "Encants", "Clot", "Bac de Roda", "Sant Martí", "La Pau", "Verneda", "Artigues Sant Adrià", "Sant Roc", "Gorg", "Pep Ventura", "Badalona Pompeu Fabra"]
+    },
+    "L3": {
+      "name": "Línia 3",
+      "color": "#00A651",
+      "stations": ["Zona Universitària", "Palau Reial", "Maria Cristina", "Les Corts", "Plaça del Centre", "Sants Estació", "Tarragona", "Espanya", "Poble Sec", "Paral·lel", "Drassanes", "Liceu", "Catalunya", "Passeig de Gràcia", "Diagonal", "Fontana", "Lesseps", "Vallcarca", "Penitents", "Vallvidrera Superior", "Canyelles", "Roquetes", "Mundet", "Montbau", "Vall d'Hebron", "Trinitat Nova"]
+    },
+    "L4": {
+      "name": "Línia 4",
+      "color": "#FFCC00",
+      "stations": ["Trinitat Nova", "Via Júlia", "Llucmajor", "Maragall", "Guinardó Hospital de Sant Pau", "Alfons X", "Joanic", "Verdaguer", "Girona", "Passeig de Gràcia", "Urquinaona", "Jaume I", "Barceloneta", "Ciutadella Vila Olímpica", "Bogatell", "Llacuna", "Poblenou", "Selva de Mar", "El Maresme Fòrum", "Besòs Mar", "La Pau"]
+    },
+    "L5": {
+      "name": "Línia 5",
+      "color": "#004A98",
+      "stations": ["Cornellà Centre", "Gavarra", "Sant Ildefons", "Can Boixeres", "Can Vidalet", "Pubilla Cases", "Collblanc", "Badal", "Sants Estació", "Entença", "Hospital Clínic", "Diagonal", "Verdaguer", "Sagrada Família", "Sant Pau Dos de Maig", "Camp de l'Arpa", "La Sagrera", "Congrés", "Maragall", "Virrei Amat", "Vilapicina", "Horta", "El Carmel", "El Coll La Teixonera", "Vall d'Hebron"]
+    }
+  },
+  "stations_pool": [
+    {
+      "id": "st_001",
+      "name": "Catalunya",
+      "name_short": "Catalunya",
+      "lines": ["L1", "L3"],
+      "difficulty": "A1",
+      "frequency": "high",
+      "connections": ["Passeig de Gràcia", "Urquinaona", "Liceu", "Universitat"]
+    },
+    {
+      "id": "st_002",
+      "name": "Sagrada Família",
+      "name_short": "Sagrada Família",
+      "lines": ["L2", "L5"],
+      "difficulty": "A1",
+      "frequency": "high",
+      "connections": ["Verdaguer", "Encants", "Sant Pau Dos de Maig", "Monumental"]
+    },
+    {
+      "id": "st_003",
+      "name": "Passeig de Gràcia",
+      "name_short": "P. de Gràcia",
+      "lines": ["L2", "L3", "L4"],
+      "difficulty": "A1",
+      "frequency": "high",
+      "connections": ["Catalunya", "Diagonal", "Girona", "Universitat"]
+    },
+    {
+      "id": "st_004",
+      "name": "Espanya",
+      "name_short": "Espanya",
+      "lines": ["L1", "L3"],
+      "difficulty": "A1",
+      "frequency": "high",
+      "connections": ["Plaça de Sants", "Poble Sec", "Tarragona", "Rocafort"]
+    },
+    {
+      "id": "st_005",
+      "name": "Sants Estació",
+      "name_short": "Sants Estació",
+      "lines": ["L3", "L5"],
+      "difficulty": "A2",
+      "frequency": "high",
+      "connections": ["Plaça de Sants", "Tarragona", "Badal", "Entença"]
+    },
+    {
+      "id": "st_006",
+      "name": "Diagonal",
+      "name_short": "Diagonal",
+      "lines": ["L3", "L5"],
+      "difficulty": "A2",
+      "frequency": "high",
+      "connections": ["Passeig de Gràcia", "Fontana", "Hospital Clínic", "Verdaguer"]
+    },
+    {
+      "id": "st_007",
+      "name": "Liceu",
+      "name_short": "Liceu",
+      "lines": ["L3"],
+      "difficulty": "A1",
+      "frequency": "medium",
+      "connections": ["Catalunya", "Drassanes"]
+    },
+    {
+      "id": "st_008",
+      "name": "Universitat",
+      "name_short": "Universitat",
+      "lines": ["L1", "L2"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Catalunya", "Urgell", "Sant Antoni", "Passeig de Gràcia"]
+    },
+    {
+      "id": "st_009",
+      "name": "Urquinaona",
+      "name_short": "Urquinaona",
+      "lines": ["L1", "L4"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Catalunya", "Arc de Triomf", "Passeig de Gràcia", "Girona"]
+    },
+    {
+      "id": "st_010",
+      "name": "Verdaguer",
+      "name_short": "Verdaguer",
+      "lines": ["L4", "L5"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Sagrada Família", "Diagonal", "Girona", "Joanic"]
+    },
+    {
+      "id": "st_011",
+      "name": "Paral·lel",
+      "name_short": "Paral·lel",
+      "lines": ["L2", "L3"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Poble Sec", "Drassanes", "Sant Antoni"]
+    },
+    {
+      "id": "st_012",
+      "name": "Clot",
+      "name_short": "Clot",
+      "lines": ["L1", "L2"],
+      "difficulty": "B1",
+      "frequency": "medium",
+      "connections": ["Glòries", "Navas", "Bac de Roda", "Encants"]
+    },
+    {
+      "id": "st_013",
+      "name": "La Sagrera",
+      "name_short": "La Sagrera",
+      "lines": ["L1", "L5"],
+      "difficulty": "B1",
+      "frequency": "medium",
+      "connections": ["Fabra i Puig", "Congrés", "Navas", "Camp de l'Arpa"]
+    },
+    {
+      "id": "st_014",
+      "name": "Collblanc",
+      "name_short": "Collblanc",
+      "lines": ["L1", "L5"],
+      "difficulty": "B1",
+      "frequency": "low",
+      "connections": ["Torrassa", "Badal", "Pubilla Cases", "Can Boixeres"]
+    },
+    {
+      "id": "st_015",
+      "name": "Badal",
+      "name_short": "Badal",
+      "lines": ["L1", "L5"],
+      "difficulty": "B1",
+      "frequency": "low",
+      "connections": ["Collblanc", "Plaça de Sants", "Sants Estació"]
+    },
+    {
+      "id": "st_016",
+      "name": "Arc de Triomf",
+      "name_short": "Arc de Triomf",
+      "lines": ["L1"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Urquinaona", "Marina"]
+    },
+    {
+      "id": "st_017",
+      "name": "Fontana",
+      "name_short": "Fontana",
+      "lines": ["L3"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Diagonal", "Lesseps"]
+    },
+    {
+      "id": "st_018",
+      "name": "Jaume I",
+      "name_short": "Jaume I",
+      "lines": ["L4"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Urquinaona", "Barceloneta"]
+    },
+    {
+      "id": "st_019",
+      "name": "Barceloneta",
+      "name_short": "Barceloneta",
+      "lines": ["L4"],
+      "difficulty": "A1",
+      "frequency": "high",
+      "connections": ["Jaume I", "Ciutadella Vila Olímpica"]
+    },
+    {
+      "id": "st_020",
+      "name": "Poble Sec",
+      "name_short": "Poble Sec",
+      "lines": ["L3"],
+      "difficulty": "A2",
+      "frequency": "medium",
+      "connections": ["Espanya", "Paral·lel"]
+    }
+  ]
+}

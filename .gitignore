@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments (local only, not for CI)
+.venv/
+venv/
+ENV/
+env/
+
+# Buildozer
+.buildozer/
+bin/
+*.apk
+*.aab
+
+# Android/Gradle
+.gradle/
+local.properties
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local configuration
+*.local
+.env

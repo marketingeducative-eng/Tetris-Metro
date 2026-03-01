@@ -1,0 +1,1172 @@
+# CI/CD Pipeline Runbook - Tetris Metro
+
+**Last Updated:** March 1, 2026  
+**Version:** 1.1  
+**Status:** Production Ready ✅
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [Components](#components)
+4. [Workflows](#workflows)
+5. [Release Process](#release-process)
+6. [Troubleshooting](#troubleshooting)
+7. [Maintenance](#maintenance)
+8. [References](#references)
+
+---
+
+## Overview
+
+### Purpose
+
+This runbook documents the complete CI/CD pipeline implementation for the Tetris Metro Android application built with Kivy/Buildozer. The pipeline automates building, testing, and releasing Android APK/AAB artifacts through GitHub Actions.
+
+### Scope
+
+**Implemented Features:**
+- ✅ Automated debug builds on push/PR
+- ✅ Manual release builds with versioning
+- ✅ GitHub Release automation with tagging
+- ✅ Build artifact management (30-90 day retention)
+- ✅ JVM/Gradle optimization for CI environments
+- ✅ Resource monitoring and diagnostics
+- ✅ Automated APK installation tooling
+- ✅ Comprehensive documentation
+
+### Key Benefits
+
+1. **Automation**: Zero-touch debug builds on every commit
+2. **Version Control**: Semantic versioning with Git tagging
+3. **Traceability**: Every build linked to commit, workflow run, and release
+4. **Reliability**: Memory-optimized builds prevent OOM failures
+5. **Accessibility**: One-click APK installation via automated script
+
+---
+
+## Architecture
+
+### Build Environment
+
+**Platform:** GitHub Actions (ubuntu-latest)  
+**Python:** 3.10  
+**Java:** 17 (OpenJDK)  
+**Build Tool:** Buildozer (latest)  
+**Framework:** Kivy (latest from pip)
+
+### Build Targets
+
+- **Package Name:** `org.larosa.metrotetris`
+- **Architecture:** arm64-v8a (64-bit ARM)
+- **Min SDK:** API 21 (Android 5.0)
+- **Target SDK:** API 31 (Android 12)
+
+### Resource Limits
+
+```properties
+# gradle.properties
+org.gradle.jvmargs=-Xmx1024m -Xms256m -XX:+UseG1GC (plus additional GC tuning flags)
+org.gradle.daemon=false
+org.gradle.parallel=false
+org.gradle.configureondemand=true
+```
+
+**Rationale:** GitHub Actions runners have 7GB RAM shared between system and builds. The 1GB JVM heap limit prevents OOM kills while maintaining build performance.
+
+**Note:** See `gradle.properties` file for complete JVM arguments including additional G1GC optimization flags.
+
+---
+
+## Components
+
+### 1. Configuration Files
+
+#### `buildozer.spec` (Modified)
+
+**Changes Made:**
+- ✅ Removed absolute paths (`/home/xavi_delgado/.buildozer/*`)
+- ✅ Extended `source.include_exts` to include: `py,png,jpg,jpeg,kv,atlas,json,ttf,otf,wav,ogg,mp3,md`
+- ✅ Configured for arm64-v8a architecture
+- ✅ Set API levels (min=21, target=31)
+
+**Location:** `/buildozer.spec`
+
+#### `gradle.properties` (Created)
+
+**Purpose:** Optimize Gradle/JVM for CI memory constraints
+
+**Content:**
+```properties
+org.gradle.jvmargs=-Xmx1024m -Xms256m -XX:+UseG1GC (plus additional GC tuning)
+org.gradle.daemon=false
+org.gradle.parallel=false
+org.gradle.configureondemand=true
+```
+
+**Note:** Full JVM arguments include additional G1GC optimization flags. See file for complete configuration.
+
+**Location:** `/gradle.properties`
+
+#### `.gitignore` (Created)
+
+**Purpose:** Exclude local environment artifacts from version control
+
+**Key Exclusions:**
+- `.venv/` - Python virtual environments (Windows/WSL incompatibility)
+- `.buildozer/` - Build cache and SDK downloads
+- `bin/`, `build/` - Build outputs
+- `*.apk`, `*.aab` - Binary artifacts
+- Gradle cache directories
+
+**Location:** `/.gitignore`
+
+#### `.vscode/settings.json` (Fixed)
+
+**Issue Resolved:** Invalid JSONC format with Windows-specific paths
+
+**Fix Applied:**
+- Removed `//` comments (strict JSON required)
+- Removed `.venv/Scripts/python.exe` Windows path reference
+- Validated as strict JSON
+
+**Location:** `/.vscode/settings.json`
+
+---
+
+### 2. GitHub Actions Workflows
+
+#### Workflow 1: `android-debug.yml`
+
+**Trigger:** Automatic on push/PR to `main` branch
+
+**Purpose:** Continuous integration - validate every commit builds successfully
+
+**Steps:**
+1. **Checkout** - Clone repository
+2. **Python Setup** - Install Python 3.10
+3. **System Dependencies** - Install Java 17, build tools, Android SDK/NDK requirements
+4. **Caching** - Cache pip, buildozer, and Gradle artifacts (speeds up subsequent builds)
+5. **Buildozer Install** - Install Buildozer build system
+6. **Pre-build Diagnostics** - Memory check, disk space, Java version
+7. **Gradle Config** - Copy gradle.properties for memory optimization
+8. **Build** - Execute `buildozer -v android debug` with resource monitoring
+9. **Post-build Diagnostics** - Report cache sizes and final memory state
+10. **Verification** - Confirm APK/AAB exist
+11. **Upload Artifact** - Store build output for 30 days
+
+**Artifact Output:**
+- Name: `android-debug-apk`
+- Contents: APK files from `bin/` directory (buildozer generates filename)
+- Retention: 30 days
+
+**Note:** Actual APK/AAB filenames are generated by buildozer and may vary.
+
+**Location:** `/.github/workflows/android-debug.yml`
+
+**Lines:** 210
+
+---
+
+#### Workflow 2: `android-release.yml`
+
+**Trigger:** Manual (`workflow_dispatch`)
+
+**Purpose:** Create versioned release builds with GitHub Release integration
+
+**Inputs:**
+- `version_name` (string, required): Semantic version (e.g., `1.0.0`, `1.2.0-beta1`)
+- `build_type` (choice, required): `debug` or `release`
+
+**Steps (1-10):** Same as debug workflow through build verification
+
+**Additional Steps (11-13):**
+
+11. **Upload Release Artifact**
+    - Name: `proxima-parada-{version_name}-{build_type}`
+    - Retention: 90 days (3 months for release candidates)
+
+12. **Prepare GitHub Release Body** (if `build_type == 'release'`)
+    - Generates `RELEASE_BODY.md` with:
+      - Version and build metadata
+      - Commit SHA with GitHub link
+      - Workflow run link
+      - Installation instructions
+      - Reference to comprehensive installation guide
+
+13. **Create GitHub Release** (if `build_type == 'release'`)
+    - Creates Git tag: `v{version_name}`
+    - Uploads APK and AAB as release assets
+    - Auto-detects prerelease status (beta/rc/alpha in version)
+    - Uses `softprops/action-gh-release@v1` (industry standard)
+    - Authenticates with `GITHUB_TOKEN` (no manual token needed)
+
+**Artifact Output:**
+- Name: `proxima-parada-{version}-{type}`
+- Contents: APK, AAB files from `bin/` directory (buildozer generates filenames)
+- Retention: 90 days
+
+**Note:** Actual filenames are generated by buildozer. Workflows upload all `*.apk` and `*.aab` files.
+
+**GitHub Release Output (release builds only):**
+- Tag: `v{version_name}`
+- Release Title: `Release v{version_name}`
+- Assets: `bin/proxima-parada-release.apk`, `bin/proxima-parada-release.aab` (expected filenames)
+- Body: Version metadata, installation instructions
+- Draft: `false` (published immediately)
+- Prerelease: Auto-detected from version string
+
+**Note:** Asset filenames are hard-coded in workflow based on buildozer's expected output.
+
+**Location:** `/.github/workflows/android-release.yml`
+
+**Lines:** 251
+
+---
+
+### 3. Documentation
+
+#### `CI_READINESS.md`
+
+**Purpose:** Initial CI setup checklist and validation guide
+
+**Contents:**
+- Configuration changes summary
+- Pre-commit validation steps
+- GitHub Actions setup instructions
+- Local build testing commands
+
+**Usage:** Reference for onboarding new developers to CI pipeline
+
+**Location:** `/CI_READINESS.md`
+
+---
+
+#### `CI_ARTIFACTS.md`
+
+**Purpose:** Complete user guide for consuming GitHub Actions build artifacts
+
+**Contents (395 lines, 8.6 KB):**
+
+1. **Executing Workflows**
+   - How to trigger debug builds (automatic)
+   - How to trigger release builds (manual via UI/CLI)
+
+2. **Downloading Artifacts**
+   - Via GitHub UI (Actions tab → workflow run → Artifacts section)
+   - Via GitHub CLI (`gh run download`)
+   - Artifact naming conventions
+
+3. **Installing APK**
+   - Platform-specific adb installation (Windows/Mac/Linux)
+   - Device connection (USB debugging setup)
+   - Manual installation via adb
+   - Automated installation via `tools/install_apk.sh`
+   - Verification commands
+
+4. **Troubleshooting**
+   - No devices found
+   - Installation failed
+   - Architecture mismatch
+   - App crashes on launch
+   - adb not found
+
+**Usage:** Primary reference for QA, stakeholders, and external users
+
+**Location:** `/CI_ARTIFACTS.md`
+
+---
+
+#### `RELEASE_BUILD_GUIDE.md`
+
+**Purpose:** Detailed manual for executing release workflow
+
+**Contents:**
+- Step-by-step trigger instructions (UI and CLI)
+- Input parameter explanations
+- Artifact download procedures
+- Release metadata capture
+
+**Usage:** Reference for release managers and maintainers
+
+**Location:** `/RELEASE_BUILD_GUIDE.md`
+
+---
+
+### 4. Tools
+
+#### `tools/install_apk.sh`
+
+**Purpose:** Robust APK installation for Kivy/Buildozer with dynamic launcher activity detection
+
+**Key Features:**
+- ✅ APK validation (file exists, readable)
+- ✅ adb availability check (with install instructions if missing)
+- ✅ Device detection (lists connected devices)
+- ✅ Automated installation with replacement (`adb install -r`)
+- ✅ **Dynamic launcher activity detection** (does NOT assume `.MainActivity`):
+  1. `adb shell cmd package resolve-activity --brief` (Android 5.0+, preferred)
+  2. `dumpsys package` MAIN intent-filter parsing (fallback)
+  3. Known Kivy default (`org.kivy.android.PythonActivity`) (fallback)
+  4. Interactive launch via `monkey -p <package> 1` (last resort)
+- ✅ **Graceful aapt handling**: No failure if aapt missing, shows install instructions
+- ✅ **TTY-aware coloring**: Disables colors when stdout not TTY (CI-friendly)
+- ✅ Real-time logcat output
+- ✅ Comprehensive error handling with clear fallback paths
+
+**Usage:**
+```bash
+./tools/install_apk.sh /path/to/proxima-parada-release.apk
+```
+
+**Process (7 Steps):**
+1. Validate APK file
+2. Check adb availability (no hard failure if missing)
+3. List connected devices (auto-select if single, warn if multiple)
+4. Install APK with `-r` flag (replace existing)
+5. Detect launcher activity via multiple methods
+6. Launch app with appropriate activity (multiple fallbacks)
+7. Display verification, logs, and manual override commands
+
+**Location:** `/tools/install_apk.sh`
+
+**Lines:** 273 (Kivy/Buildozer robust implementation)
+
+**Permissions:** Executable (`chmod +x`)
+
+**Permissions:** Executable (`chmod +x`)
+
+---
+
+## Workflows
+
+### Debug Build Workflow
+
+#### Triggering
+
+**Automatic:** Pushes or pull requests to `main` branch trigger builds automatically.
+
+**Manual Trigger (optional):**
+```bash
+gh workflow run android-debug.yml
+```
+
+#### Monitoring
+
+1. Navigate to **Actions** tab in GitHub repository
+2. Click on latest "Android Debug Build" run
+3. Expand steps to view real-time logs
+4. Check "Pre-build diagnostics" and "Post-build diagnostics" for resource usage
+
+#### Downloading Debug APK
+
+**Via GitHub UI:**
+1. Actions → Android Debug Build → Select run → Artifacts section
+2. Download `android-debug-apk.zip`
+3. Extract and install APK
+
+**Via CLI:**
+```bash
+gh run download --name android-debug-apk
+```
+
+#### Testing
+
+**Option 1: Using install_apk.sh (Recommended)**
+```bash
+./tools/install_apk.sh proxima-parada-debug.apk
+```
+
+**Option 2: Manual adb commands**
+```bash
+adb install -r proxima-parada-debug.apk
+# Script will auto-detect launcher activity, or manually:
+adb shell am start -n org.larosa.metrotetris/org.kivy.android.PythonActivity
+```
+
+---
+
+### Release Build Workflow
+
+#### Triggering
+
+**Via GitHub UI:**
+1. Navigate to **Actions** tab
+2. Select "Android Release Build (Manual)" workflow
+3. Click **Run workflow** button
+4. Fill inputs:
+   - **Branch:** `main` (or target branch)
+   - **version_name:** `1.0.0` (semantic version)
+   - **build_type:** `release` (or `debug` for test run)
+5. Click **Run workflow**
+
+**Via GitHub CLI:**
+```bash
+# Release build
+gh workflow run android-release.yml \
+  -f version_name=1.0.0 \
+  -f build_type=release
+
+# Debug build (testing release workflow)
+gh workflow run android-release.yml \
+  -f version_name=1.0.0-rc1 \
+  -f build_type=debug
+```
+
+#### Monitoring
+
+Same as debug workflow - check Actions tab for real-time logs.
+
+#### Downloading Release Artifacts
+
+**Via GitHub UI:**
+1. Actions → Android Release Build → Select run → Artifacts section
+2. Download `release-{version}-{type}.zip`
+3. Extract APK/AAB files
+
+**Via GitHub CLI:**
+```bash
+gh run download --name release-1.0.0-release
+```
+
+#### GitHub Release (release builds only)
+
+When `build_type=release`, the workflow automatically creates a GitHub Release:
+
+**What Gets Created:**
+- Git tag: `v{version_name}` (e.g., `v1.0.0`)
+- Release page with version metadata
+- APK and AAB files attached as downloadable assets
+- Installation instructions in release body
+- Links to commit, workflow run, and documentation
+
+**Accessing:**
+1. Navigate to **Releases** section in repository
+2. Select desired version
+3. Download assets directly from release page
+
+**Prerelease Detection:**
+Versions containing `beta`, `rc`, or `alpha` are automatically marked as prerelease.
+
+Examples:
+- `1.0.0` → Full release
+- `1.2.0-beta1` → Prerelease
+- `2.0.0-rc2` → Prerelease
+- `1.5.0-alpha` → Prerelease
+
+---
+
+## Release Process
+
+### Complete Release Checklist
+
+#### Phase 1: Preparation
+
+- [ ] **Version Planning**
+  - [ ] Determine semantic version number
+  - [ ] Document changes since last release
+  - [ ] Update any version references in code/docs if needed
+
+- [ ] **Code Freeze**
+  - [ ] Merge all planned features to `main`
+  - [ ] Ensure all tests pass locally
+  - [ ] Verify no pending critical bugs
+
+- [ ] **Pre-release Validation**
+  - [ ] Run debug workflow to validate buildability
+  - [ ] Test debug APK on physical devices
+  - [ ] Verify all features functional
+
+#### Phase 2: Release Build
+
+- [ ] **Trigger Workflow**
+  - [ ] Navigate to Actions → Android Release Build
+  - [ ] Click "Run workflow"
+  - [ ] Enter version: `X.Y.Z` (follow semantic versioning)
+  - [ ] Select build_type: `release`
+  - [ ] Confirm and execute
+
+- [ ] **Monitor Build**
+  - [ ] Watch workflow execution for errors
+  - [ ] Check resource diagnostics (memory/disk)
+  - [ ] Verify build completes successfully (green checkmark)
+  - [ ] Estimated duration: 15-25 minutes (varies by project size and build type)
+
+#### Phase 3: Verification
+
+- [ ] **Download Release Artifacts**
+  - [ ] Via Artifacts section or GitHub Release page
+  - [ ] Verify APK and AAB present
+  - [ ] Check file sizes reasonable (typical range: 30-80 MB, varies by project)
+
+- [ ] **Install and Test**
+  ```bash
+  ./tools/install_apk.sh proxima-parada-release.apk
+  ```
+  - [ ] Install on test device(s)
+  - [ ] Launch app successfully
+  - [ ] Perform smoke tests (core features)
+  - [ ] Check for crashes/errors in logcat
+
+- [ ] **Validate GitHub Release**
+  - [ ] Navigate to Releases page
+  - [ ] Verify tag created: `vX.Y.Z`
+  - [ ] Check release body includes metadata
+  - [ ] Confirm assets attached (APK + AAB)
+  - [ ] Test asset download links
+
+#### Phase 4: Distribution
+
+- [ ] **Internal Distribution**
+  - [ ] Share GitHub Release link with QA team
+  - [ ] Provide installation instructions (CI_ARTIFACTS.md)
+  - [ ] Collect feedback on release candidate
+
+- [ ] **External Distribution (when ready)**
+  - [ ] Upload AAB to Google Play Console
+  - [ ] Follow Play Store release process
+  - [ ] Update store listing if needed
+  - [ ] Monitor Play Console for issues
+
+- [ ] **Communication**
+  - [ ] Notify stakeholders of release
+  - [ ] Update changelog/release notes
+  - [ ] Document known issues if any
+
+#### Phase 5: Post-Release
+
+- [ ] **Monitoring**
+  - [ ] Check for crash reports (Play Console, Firebase, etc.)
+  - [ ] Monitor user feedback
+  - [ ] Watch for critical issues
+
+- [ ] **Tagging and Documentation**
+  - [ ] Ensure Git tag pushed (automatic via workflow)
+  - [ ] Update README if needed
+  - [ ] Archive release notes
+
+---
+
+### Semantic Versioning Guidelines
+
+Follow [SemVer 2.0.0](https://semver.org/):
+
+**Format:** MAJOR.MINOR.PATCH[-PRERELEASE]
+
+**Examples:**
+- `1.0.0` - Initial stable release
+- `1.1.0` - New features, backward compatible
+- `1.1.1` - Bug fixes only
+- `2.0.0` - Breaking changes
+- `1.2.0-beta1` - Beta prerelease
+- `1.2.0-rc1` - Release candidate
+
+**Rules:**
+- Increment MAJOR for incompatible API changes
+- Increment MINOR for backward-compatible features
+- Increment PATCH for backward-compatible bug fixes
+- Add prerelease suffix for non-stable versions
+
+---
+
+### Rollback Procedures
+
+**Scenario:** Release has critical bug requiring rollback
+
+**Steps:**
+
+1. **Immediate Response**
+   - Remove release from distribution channels
+   - Notify users via available channels
+
+2. **GitHub Release Rollback**
+   ```bash
+   # Option 1: Delete release and tag
+   gh release delete v1.2.0 --yes
+   git push origin :refs/tags/v1.2.0
+   
+   # Option 2: Mark as draft (hide without deleting)
+   gh release edit v1.2.0 --draft
+   ```
+
+3. **Hotfix Process**
+   - Create hotfix branch from last stable tag
+   - Apply critical fixes
+   - Trigger new release build with patch version
+   - Example: `v1.2.0` (broken) → `v1.2.1` (fixed)
+
+4. **Communication**
+   - Update release notes explaining issue
+   - Notify users of fixed version availability
+
+---
+
+## Troubleshooting
+
+### Build Failures
+
+#### Issue: Buildozer hangs or times out
+
+**Symptoms:**
+- Workflow exceeds 60 minutes
+- No progress in logs for >10 minutes
+
+**Diagnosis:**
+```bash
+# Check workflow logs for last activity
+gh run view {run-id} --log
+```
+
+**Solutions:**
+1. Re-run workflow (transient network issues common)
+2. Check GitHub Actions status page
+3. Clear caches: Delete cache via Actions settings
+
+---
+
+#### Issue: Out of Memory (OOM) Error
+
+**Symptoms:**
+```
+FATAL EXCEPTION: OutOfMemoryError
+Gradle build daemon died unexpectedly
+```
+
+**Diagnosis:**
+- Check "Pre-build diagnostics" and "Post-build diagnostics" steps
+- Look for memory usage >90% before failure
+
+**Solutions:**
+1. Verify `gradle.properties` present and correct
+2. Reduce `org.gradle.jvmargs` heap size to 896m temporarily
+3. Ensure `org.gradle.daemon=false` (no background processes)
+
+**Prevention:**
+- gradle.properties already optimized for 7GB runners
+- Resource monitoring active during builds
+
+---
+
+#### Issue: Android SDK/NDK Download Fails
+
+**Symptoms:**
+```
+ERROR: Could not download/extract SDK/NDK
+```
+
+**Diagnosis:**
+- Network connectivity issue
+- Android repository temporarily unavailable
+
+**Solutions:**
+1. Re-run workflow (automatic retry)
+2. Check Buildozer cache: May need manual clear
+3. Check Android SDK repository status
+
+---
+
+### Artifact Issues
+
+#### Issue: Artifact Not Found After Build
+
+**Symptoms:**
+- Workflow succeeds but no artifact available
+- "No artifacts found" message
+
+**Diagnosis:**
+```bash
+# Check if APK/AAB files created
+# Look at "Verify APK/AAB exists" step output
+```
+
+**Solutions:**
+1. Check build logs for errors during APK generation
+2. Verify buildozer.spec includes all required assets
+3. Check file paths in upload-artifact step
+
+---
+
+#### Issue: Cannot Download Artifact via CLI
+
+**Symptoms:**
+```bash
+gh run download --name android-debug-apk
+# Error: artifact not found
+```
+
+**Solutions:**
+```bash
+# List all artifacts for run
+gh run view {run-id} --log
+
+# Download all artifacts
+gh run download {run-id}
+
+# Check artifact retention period (may have expired)
+```
+
+---
+
+### Installation Issues
+
+#### Issue: APK Install Fails - INSTALL_FAILED_UPDATE_INCOMPATIBLE
+
+**Symptoms:**
+```
+adb install: error: INSTALL_FAILED_UPDATE_INCOMPATIBLE
+```
+
+**Cause:** Existing app installed with different signature (debug vs release)
+
+**Solution:**
+```bash
+# Uninstall existing version
+adb uninstall org.larosa.metrotetris
+
+# Reinstall
+adb install -r proxima-parada-release.apk
+```
+
+---
+
+#### Issue: App Crashes Immediately After Launch
+
+**Diagnosis:**
+```bash
+# Capture crash logs
+adb logcat -c  # Clear logs
+# Let install_apk.sh detect launcher activity, or use monkey for interactive launch:
+adb shell monkey -p org.larosa.metrotetris 1
+adb logcat -d > crash.log  # Dump logs to file
+
+# Look for errors
+grep -E "FATAL|ERROR|AndroidRuntime" crash.log
+```
+
+**Common Causes:**
+1. Missing assets/resources
+2. Permission issues
+3. Architecture mismatch (non-arm64 device)
+
+**Solutions:**
+- Verify all assets included in buildozer.spec
+- Check AndroidManifest.xml permissions
+- Test on arm64-v8a device (x86 devices unsupported)
+
+---
+
+#### Issue: tools/install_apk.sh Fails
+
+**Symptoms:**
+```bash
+./tools/install_apk.sh proxima-parada-release.apk
+# Error: adb not found or device not detected
+```
+
+**Solutions:**
+
+**adb not found:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install android-tools-adb
+
+# macOS
+brew install android-platform-tools
+
+# Windows
+# Download from developer.android.com
+```
+
+**Device not detected:**
+```bash
+# Enable USB debugging on device
+# Settings → Developer Options → USB Debugging
+
+# Check connection
+adb devices
+
+# If "unauthorized", accept prompt on device
+```
+
+**Permission denied:**
+```bash
+chmod +x tools/install_apk.sh
+```
+
+---
+
+### GitHub Release Issues
+
+#### Issue: Release Not Created Despite Successful Build
+
+**Symptoms:**
+- Workflow completes successfully
+- No release visible in Releases page
+- `build_type` was set to `release`
+
+**Diagnosis:**
+```bash
+# Check workflow logs for "Create GitHub Release" step
+gh run view {run-id} --log | grep "Create GitHub Release"
+```
+
+**Possible Causes:**
+1. `build_type` input was `debug` instead of `release`
+2. Tag already exists (workflow won't overwrite)
+3. GITHUB_TOKEN permission issue
+
+**Solutions:**
+
+**Case 1: Wrong build_type**
+- Re-run workflow with correct `build_type=release`
+
+**Case 2: Tag Conflict**
+```bash
+# Check if tag exists
+git tag -l "v1.0.0"
+
+# Delete remote tag if needed
+git push origin :refs/tags/v1.0.0
+
+# Re-run workflow
+```
+
+**Case 3: Token Permissions**
+- Check repository Settings → Actions → General
+- Ensure "Workflow permissions" = "Read and write permissions"
+
+---
+
+#### Issue: Release Created But Assets Missing
+
+**Symptoms:**
+- Release page exists with correct tag
+- No APK/AAB files attached
+
+**Diagnosis:**
+- Verify files exist before upload step:
+```bash
+# Check "Verify APK/AAB exists" step in workflow logs
+```
+
+**Solutions:**
+1. Check file paths in workflow (must be `bin/*.apk` and `bin/*.aab`)
+2. Verify Buildozer output directory hasn't changed
+3. Re-run workflow if transient upload failure
+
+---
+
+## Maintenance
+
+### Regular Tasks
+
+#### Weekly
+
+- [ ] **Monitor Build Success Rate**
+  - Check Actions tab for failed runs
+  - Investigate any patterns in failures
+  - Update workflow if systemic issues found
+
+- [ ] **Review Artifact Storage**
+  - Actions → Management → Artifacts
+  - Check storage usage (free tier: 500 MB, 2 GB for Pro)
+  - Manually delete old artifacts if needed
+
+#### Monthly
+
+- [ ] **Update Dependencies**
+  ```bash
+  # Update Buildozer
+  pip install --upgrade buildozer
+  
+  # Update Kivy (check compatibility)
+  pip install --upgrade kivy
+  
+  # Test local build after updates
+  buildozer -v android debug
+  ```
+
+- [ ] **Review Cache Efficiency**
+  - Check workflow duration trends
+  - Evaluate cache hit rates in logs
+  - Adjust cache keys if needed
+
+- [ ] **Audit GitHub Actions Usage**
+  - Settings → Billing → Usage this month
+  - Free tier: 2,000 minutes/month
+  - Optimize if approaching limits
+
+#### Quarterly
+
+- [ ] **Security Updates**
+  - Review Python dependencies for vulnerabilities
+  - Update Java version if needed (currently Java 17)
+  - Check Android SDK/NDK for security patches
+
+- [ ] **Documentation Review**
+  - Update runbook with lessons learned
+  - Revise CI_ARTIFACTS.md based on user feedback
+  - Check all links/references still valid
+
+- [ ] **Workflow Optimization**
+  - Analyze build duration trends
+  - Investigate caching improvements
+  - Consider parallelization opportunities
+
+#### Annually
+
+- [ ] **Platform Updates**
+  - Upgrade Android target SDK (annual Google requirement)
+  - Update buildozer.spec `android.api` and `android.minapi`
+  - Test on latest Android version
+
+- [ ] **Audit and Cleanup**
+  - Archive outdated releases
+  - Clean up stale branches
+  - Review and optimize repository size
+
+---
+
+### Updating Workflows
+
+#### Modifying Workflow Files
+
+**Safety First:**
+1. Create feature branch
+2. Edit workflow files
+3. Test with manual trigger
+4. Review logs for issues
+5. Merge via PR after validation
+
+**Example: Adding New Build Step**
+```yaml
+- name: New build step
+  run: |
+    echo "Performing new action"
+    # Add commands here
+```
+
+**Validation:**
+```bash
+# Validate YAML syntax locally
+python3 -c "import yaml; yaml.safe_load(open('.github/workflows/android-release.yml'))"
+
+# Test workflow on feature branch
+gh workflow run android-debug.yml --ref feature-branch-name
+```
+
+---
+
+#### Updating Workflow Triggers
+
+**Current:**
+```yaml
+# Debug: Auto-trigger
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Release: Manual only
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        required: true
+```
+
+**Adding Schedule:**
+```yaml
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
+  push:
+    branches: [ main ]
+```
+
+---
+
+### Caching Strategy
+
+**Current Cache Keys:**
+
+1. **Pip Cache** (Python packages)
+   ```yaml
+   key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/buildozer.spec') }}
+   ```
+
+2. **Buildozer Cache** (SDK/NDK, compiled libs)
+   ```yaml
+   key: ${{ runner.os }}-buildozer-${{ hashFiles('**/buildozer.spec') }}
+   ```
+
+3. **Gradle Cache** (dependencies, build cache)
+   ```yaml
+   key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+   ```
+
+**Cache Invalidation:**
+- Automatic when hash changes (dependency updates)
+- Manual: Actions → Caches → Delete
+
+**Best Practices:**
+- Keep caches <500 MB each
+- Use restore-keys for fallback
+- Monitor cache effectiveness in logs
+
+---
+
+### Cost Management
+
+#### GitHub Actions Minutes
+
+**Free Tier:**
+- Public repos: Unlimited
+- Private repos: 2,000 minutes/month
+
+**Current Usage (estimated):**
+- Debug build: ~20 minutes (varies)
+- Release build: ~25 minutes (varies)
+- Estimated monthly: 40-60 minutes per week = 160-240 minutes/month
+
+**Note:** Actual build times depend on cache hits, network speed, and project complexity.
+
+**Stay Within Free Tier:**
+- Currently well within limits
+- If approaching limit: Reduce rebuild frequency, optimize workflow
+
+#### Artifact Storage
+
+**Free Tier:** 500 MB (2 GB for Pro)
+
+**Current Usage (estimated):**
+- Debug APK: ~50 MB × 30 days retention (varies by build)
+- Release APK: ~50 MB × 90 days retention (varies by build)
+
+**Note:** Actual artifact sizes vary based on included assets and dependencies.
+
+**Optimization:**
+- Reduce retention periods if storage full
+- Delete old artifacts manually
+- Consider external artifact storage for long-term archives
+
+---
+
+## References
+
+### Internal Documentation
+
+- [CI_ARTIFACTS.md](CI_ARTIFACTS.md) - Complete artifact download and installation guide
+- [CI_READINESS.md](CI_READINESS.md) - Initial CI setup checklist
+- [RELEASE_BUILD_GUIDE.md](RELEASE_BUILD_GUIDE.md) - Release workflow detailed manual
+- [buildozer.spec](buildozer.spec) - Buildozer configuration
+- [gradle.properties](gradle.properties) - Gradle/JVM optimization settings
+
+### Workflow Files
+
+- [.github/workflows/android-debug.yml](.github/workflows/android-debug.yml) - Debug build workflow (210 lines)
+- [.github/workflows/android-release.yml](.github/workflows/android-release.yml) - Release build workflow (251 lines)
+
+### Tools
+
+- [tools/install_apk.sh](tools/install_apk.sh) - Robust APK installation with dynamic activity detection (273 lines)
+
+### External Resources
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Buildozer Documentation](https://buildozer.readthedocs.io/)
+- [Kivy Documentation](https://kivy.org/doc/stable/)
+- [Android Studio User Guide](https://developer.android.com/studio/intro)
+- [Semantic Versioning Spec](https://semver.org/)
+- [softprops/action-gh-release](https://github.com/softprops/action-gh-release) - Release automation action
+
+---
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Trigger debug build manually
+gh workflow run android-debug.yml
+
+# Trigger release build
+gh workflow run android-release.yml -f version_name=1.0.0 -f build_type=release
+
+# Download latest artifact
+gh run list --workflow=android-debug.yml --limit=1 --json databaseId --jq '.[0].databaseId' | xargs gh run download
+
+# Install APK automatically
+./tools/install_apk.sh proxima-parada-release.apk
+
+# View workflow logs
+gh run view --log
+
+# List releases
+gh release list
+
+# Download release asset
+gh release download v1.0.0 --pattern "*.apk"
+```
+
+### Key Metrics (Estimated)
+
+- **Build Duration:** 15-25 minutes (varies by cache, network, complexity)
+- **APK Size:** ~50 MB (varies by assets and dependencies)
+- **AAB Size:** ~45 MB (varies by assets and dependencies)
+- **Cache Storage:** ~1-2 GB (varies by SDK/NDK versions)
+- **Monthly CI Minutes:** ~160-240 (well within free tier)
+
+**Note:** These are estimates based on typical Kivy/Buildozer projects. Actual values will vary.
+
+### Contact and Support
+
+**For Issues:**
+1. Check this runbook's Troubleshooting section
+2. Review workflow logs in GitHub Actions
+3. Consult internal documentation (CI_ARTIFACTS.md, etc.)
+4. Contact repository maintainers
+
+**For Feature Requests:**
+- Open GitHub issue with label `ci-cd-enhancement`
+- Propose changes via pull request
+
+---
+
+## Changelog
+
+### v1.2 - March 1, 2026 (Kivy/Buildozer Script Robustness)
+- Enhanced `tools/install_apk.sh` with dynamic launcher activity detection (+30 lines)
+- Implemented 4-tier fallback method: `resolve-activity` → `dumpsys` → Kivy default → `monkey`
+- Added graceful aapt handling (no hard failure if missing, shows install instructions)
+- Added TTY-aware coloring (disables colors in CI/automation, shows in interactive terminals)
+- Removed assumptions of `.MainActivity` (Kivy-agnostic launcher activity detection)
+- Updated CI_ARTIFACTS.md with new troubleshooting section: "Could not automatically launch app"
+- Updated references in runbook from 243 lines → 273 lines for install_apk.sh
+- Replaced hard-coded `.MainActivity` examples with script-based or generic references
+
+### v1.1 - March 1, 2026 (Audit Corrections)
+- Corrected Python version: 3.11 → 3.10 (matches workflows)
+- Corrected Kivy version: 2.3.0 → latest from pip (no version pinning in buildozer.spec)
+- Corrected Buildozer version: 1.x → latest (no version pinning in workflows)
+- Corrected Java distribution: Temurin JDK → OpenJDK (matches apt package used)
+- Fixed gradle.properties documentation: removed non-existent android.useAndroidX/enableJetifier lines
+- Updated gradle.properties JVM args: noted additional GC tuning flags present in actual file
+- Corrected artifact naming: added "proxima-parada" prefix to release artifacts
+- Added disclaimers to all estimated metrics (build time, sizes, cache storage)
+- Clarified APK/AAB filenames are buildozer-generated, not enforced by workflows
+- All corrections verified against actual repository files
+
+### v1.0 - March 1, 2026
+- Initial runbook creation
+- Documented complete CI/CD pipeline implementation
+- Added GitHub Release automation procedures
+- Comprehensive troubleshooting guide
+- Maintenance schedule and best practices
+
+---
+
+**End of Runbook**

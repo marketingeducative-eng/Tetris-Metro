@@ -1,0 +1,380 @@
+name: Android Release Build (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g., 1.0.0, 1.1.0-beta)'
+        required: true
+        type: string
+      build_type:
+        description: 'Build type'
+        required: true
+        type: choice
+        default: 'release'
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libffi-dev \
+            libssl-dev \
+            libltdl-dev \
+            python3-setuptools
+      
+      - name: Set up cache for pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-release-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Set up cache for buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: ${{ runner.os }}-buildozer-release-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+      
+      - name: Set up cache for gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-release-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      
+      - name: Install buildozer and dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install --upgrade buildozer cython
+      
+      - name: Update version in buildozer.spec
+        run: |
+          VERSION="${{ github.event.inputs.version_name }}"
+          echo "Setting version to: $VERSION"
+          sed -i "s/^version = .*/version = $VERSION/" buildozer.spec
+          echo "Verify version update:"
+          grep "^version" buildozer.spec
+      
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          yes | sdkmanager --licenses || true
+      
+      - name: Pre-build: JVM and Memory Configuration
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "PRE-BUILD JVM & MEMORY DIAGNOSTICS"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[Java Configuration]"
+          java -XshowSettings:vm -version 2>&1 | head -20
+          echo ""
+          echo "[System Memory Before Build]"
+          free -h
+          echo ""
+          echo "[Environment Variables]"
+          echo "JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-not set}"
+          echo "GRADLE_OPTS: ${GRADLE_OPTS:-not set}"
+          echo ""
+          echo "[gradle.properties Verification]"
+          if [ -f gradle.properties ]; then
+            echo "✓ gradle.properties found and readable"
+            grep "org.gradle.jvmargs\|org.gradle.daemon\|org.gradle.parallel" gradle.properties || echo "Could not parse settings"
+          else
+            echo "⚠ gradle.properties not found (will use environment variables)"
+          fi
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
+      - name: Build Android APK/AAB (${{ github.event.inputs.build_type }})
+        run: |
+          set -o pipefail
+          BUILD_TYPE="${{ github.event.inputs.build_type }}"
+          echo "Starting buildozer $BUILD_TYPE build..."
+          if [ "$BUILD_TYPE" = "release" ]; then
+            buildozer -v android release 2>&1 | tee build.log
+          else
+            buildozer -v android debug 2>&1 | tee build.log
+          fi
+          BUILD_EXIT=$?
+          echo "Build exit code: $BUILD_EXIT"
+          exit $BUILD_EXIT
+      
+      - name: Post-build: Memory and OOM Analysis
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "POST-BUILD JVM & MEMORY DIAGNOSTICS"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[System Memory After Build]"
+          free -h
+          echo ""
+          echo "[Disk Space]"
+          df -h | head -5
+          echo ""
+          echo "[OOM Check]"
+          if grep -q "OutOfMemoryError\|java.lang.OutOfMemoryError" build.log 2>/dev/null; then
+            echo "❌ OutOfMemoryError detected in build logs"
+            echo ""
+            echo "HINT: Reduce heap size or enable aggressive GC."
+            echo "Try: org.gradle.jvmargs=-Xmx896m -Xms128m -XX:+UseG1GC"
+            echo ""
+            grep "OutOfMemoryError" build.log | head -5 || true
+            exit 1
+          else
+            echo "✓ No OutOfMemoryError detected"
+          fi
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+      
+      - name: List bin directory (debug)
+        if: always()
+        run: |
+          echo "Contents of bin/ directory:"
+          ls -lah bin/ || echo "bin/ directory not found"
+      
+      - name: Verify and prepare Release artifacts
+        id: release_artifacts
+        run: |
+          set -euo pipefail
+          
+          command -v unzip >/dev/null || { echo "❌ unzip not installed"; exit 1; }
+          
+          TEMP_DIR="${{ runner.temp }}/release_artifacts"
+          mkdir -p "$TEMP_DIR"
+          
+          echo "[Step 1] Searching for APK files..."
+          APK_CANDIDATES=$(find bin -maxdepth 1 -type f -name "*.apk" 2>/dev/null || true)
+          
+          if [ -z "$APK_CANDIDATES" ]; then
+            echo "[Step 2] No APKs in bin/, searching in buildozer paths..."
+            APK_CANDIDATES=$(find .buildozer -type f \( -path "*/build/outputs/apk/*/*.apk" -o -path "*/dists/*/build/outputs/apk/*/*.apk" \) 2>/dev/null || true)
+          fi
+          
+          if [ -z "$APK_CANDIDATES" ]; then
+            echo ""
+            echo "════════════════════════════════════════════════════════════════"
+            echo "❌ VERIFICATION FAILED: No APK file found"
+            echo "════════════════════════════════════════════════════════════════"
+            echo ""
+            echo "[Diagnostic: bin/ directory contents]"
+            ls -la bin 2>/dev/null || echo "bin/ directory does not exist"
+            echo ""
+            echo "[Diagnostic: .buildozer structure]"
+            find .buildozer -maxdepth 3 -type d -name 'outputs' 2>/dev/null | head -5 || echo "No buildozer outputs dirs found"
+            echo ""
+            echo "Build process did not generate APK. Check logs above for build errors."
+            exit 1
+          fi
+          
+          # Select most recent APK by mtime
+          echo "[Step 2.5] Selecting most recent APK..."
+          APK_FILE=$(echo "$APK_CANDIDATES" | while read -r f; do
+            stat -c "%Y %n" "$f" 2>/dev/null || true
+          done | sort -rn | head -1 | cut -d' ' -f2-)
+          
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ FAILED: Could not select APK from candidates"
+            exit 1
+          fi
+          
+          # Validate APK
+          if ! test -s "$APK_FILE"; then
+            echo "❌ FAILED: APK file is empty (0 bytes): $APK_FILE"
+            exit 1
+          fi
+          
+          if ! unzip -t "$APK_FILE" > /dev/null 2>&1; then
+            echo "❌ FAILED: APK is not a valid ZIP archive: $APK_FILE"
+            exit 1
+          fi
+          
+          # Copy APK to stable name
+          cp "$APK_FILE" "$TEMP_DIR/metro-release.apk"
+          echo "✓ APK prepared: $APK_FILE (copied to $TEMP_DIR/metro-release.apk)"
+          echo ""
+          
+          # Search for AAB (optional)
+          echo "[Step 3] Searching for AAB files (optional)..."
+          AAB_CANDIDATES=$(find bin -maxdepth 1 -type f -name "*.aab" 2>/dev/null || true)
+          
+          if [ -z "$AAB_CANDIDATES" ]; then
+            echo "[Step 4] No AAB in bin/, searching in buildozer paths..."
+            AAB_CANDIDATES=$(find .buildozer -type f -path "*/build/outputs/bundle/*/*.aab" 2>/dev/null || true)
+          fi
+          
+          AAB_FILE=""
+          if [ -n "$AAB_CANDIDATES" ]; then
+            echo "[Step 4.5] Selecting most recent AAB..."
+            AAB_FILE=$(echo "$AAB_CANDIDATES" | while read -r f; do
+              stat -c "%Y %n" "$f" 2>/dev/null || true
+            done | sort -rn | head -1 | cut -d' ' -f2-)
+          fi
+          
+          if [ -n "$AAB_FILE" ] && test -s "$AAB_FILE"; then
+            cp "$AAB_FILE" "$TEMP_DIR/metro-release.aab"
+            echo "✓ AAB prepared: $AAB_FILE (copied to $TEMP_DIR/metro-release.aab)"
+            echo "aab_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "⚠ No AAB found (optional, will continue)"
+            echo "aab_found=false" >> "$GITHUB_OUTPUT"
+          fi
+          
+          # Generate dynamic files list using array (only existing files)
+          echo "[Step 5] Generating release files list..."
+          FILES=()
+          [ -f "$TEMP_DIR/metro-release.apk" ] && FILES+=("$TEMP_DIR/metro-release.apk")
+          [ -f "$TEMP_DIR/metro-release.aab" ] && FILES+=("$TEMP_DIR/metro-release.aab")
+          
+          {
+            printf '%s\n' "${FILES[@]}"
+          } > "${{ runner.temp }}/release_files.txt"
+          
+          {
+            echo "release_files<<EOF"
+            cat "${{ runner.temp }}/release_files.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          
+          echo ""
+          echo "✅ Release artifacts prepared:"
+          ls -lh "$TEMP_DIR/"
+      
+      - name: Post-build Gradle diagnostics
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "POST-BUILD GRADLE DIAGNOSTICS"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          echo "[Gradle Cache Size]"
+          if [ -d ~/.gradle ]; then
+            GRADLE_SIZE=$(du -sh ~/.gradle | awk '{print $1}')
+            echo "~/.gradle size: $GRADLE_SIZE"
+          else
+            echo "~/.gradle not found"
+          fi
+          
+          echo ""
+          echo "[Local Buildozer Cache]"
+          if [ -d .buildozer ]; then
+            LOCAL_CACHE=$(du -sh .buildozer | awk '{print $1}')
+            echo ".buildozer size: $LOCAL_CACHE"
+          else
+            echo ".buildozer not found"
+          fi
+          
+          echo ""
+          echo "[Memory After Build]"
+          free -h | grep Mem
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+      
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxima-parada-${{ github.event.inputs.version_name }}-${{ github.event.inputs.build_type }}
+          path: |
+            bin/*.apk
+            bin/*.aab
+          if-no-files-found: error
+          retention-days: 90
+      
+      - name: Create release notes
+        run: |
+          cat > release_notes.txt <<EOF
+          Build Metadata
+          ==============
+          Version: ${{ github.event.inputs.version_name }}
+          Build Type: ${{ github.event.inputs.build_type }}
+          Built At: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref }}
+          Workflow: ${{ github.workflow }}
+          Run: ${{ github.run_number }}
+          EOF
+          cat release_notes.txt
+      
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes-${{ github.event.inputs.version_name }}
+          path: release_notes.txt
+          retention-days: 90
+      
+      - name: Prepare GitHub Release body
+        if: github.event.inputs.build_type == 'release'
+        run: |
+          cat > RELEASE_BODY.md <<'RELEASE_EOF'
+          # Release v${{ github.event.inputs.version_name }}
+          
+          **Build Information:**
+          - Version: ${{ github.event.inputs.version_name }}
+          - Build Type: ${{ github.event.inputs.build_type }}
+          - Built: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - Commit: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          - Workflow Run: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          **Artifacts:**
+          - Release APK: `proxima-parada-release.apk`
+          - Release Bundle: `proxima-parada-release.aab`
+          
+          **Installation:**
+          ```bash
+          adb install -r proxima-parada-release.apk
+          ```
+          
+          See [CI_ARTIFACTS.md](https://github.com/${{ github.repository }}/blob/main/CI_ARTIFACTS.md) for detailed installation instructions.
+          RELEASE_EOF
+          cat RELEASE_BODY.md
+      
+      - name: Create GitHub Release
+        if: github.event.inputs.build_type == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version_name }}
+          name: Release v${{ github.event.inputs.version_name }}
+          body_path: RELEASE_BODY.md
+          files: ${{ steps.release_artifacts.outputs.release_files }}
+          draft: false
+          prerelease: ${{ contains(github.event.inputs.version_name, 'beta') || contains(github.event.inputs.version_name, 'rc') || contains(github.event.inputs.version_name, 'alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

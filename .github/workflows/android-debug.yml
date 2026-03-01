@@ -1,0 +1,275 @@
+name: Android Debug Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libffi-dev \
+            libssl-dev \
+            libltdl-dev \
+            python3-setuptools
+      
+      - name: Set up cache for pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Set up cache for buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+      
+      - name: Set up cache for gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      
+      - name: Install buildozer and dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install --upgrade buildozer cython
+      
+      - name: Pre-build environment diagnostics
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "PRE-BUILD DIAGNOSTICS"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[System Memory]"
+          free -h
+          echo ""
+          echo "[Disk Space]"
+          df -h /
+          echo ""
+          echo "[CPU Info]"
+          echo "Available CPUs: $(nproc)"
+          echo ""
+          echo "[Java Version]"
+          java -version 2>&1 || echo "Java not found"
+          echo ""
+          echo "[Python Version]"
+          python3 --version
+          echo ""
+          echo "[Buildozer Version]"
+          buildozer --version || echo "Buildozer not yet initialized"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          yes | sdkmanager --licenses || true
+      
+      - name: Configure Gradle/JVM for CI
+        run: |
+          echo "Configuring Java/Gradle for CI environment..."
+          
+          # Export environment variables for this step and all following steps
+          echo "JAVA_TOOL_OPTIONS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled" >> $GITHUB_ENV
+          echo "GRADLE_OPTS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:G1NewCollectionOverheadPercent=20 -XX:G1MaxGCPauseMillis=50" >> $GITHUB_ENV
+          echo "GRADLE_USER_HOME=$HOME/.gradle" >> $GITHUB_ENV
+          
+          # Verify gradle.properties exists
+          if [ -f gradle.properties ]; then
+            echo "✓ gradle.properties found locally"
+            cat gradle.properties
+          else
+            echo "⚠ gradle.properties not found in workspace"
+          fi
+          
+          # Show effective settings
+          echo ""
+          echo "Effective settings:"
+          echo "  JAVA_TOOL_OPTIONS: $JAVA_TOOL_OPTIONS"
+          echo "  GRADLE_OPTS (will use above)"
+          echo "  Java max heap: 1024m"
+          echo "  Gradle daemon: disabled (gradle.properties)"
+          echo "  Gradle parallel: disabled (gradle.properties)"
+      
+      - name: Build Android APK
+        run: |
+          echo "Starting build with resource monitoring..."
+          
+          # Start background resource monitor
+          {
+            while sleep 10; do
+              TIMESTAMP=$(date '+%H:%M:%S')
+              MEM_USAGE=$(free -h | grep Mem | awk '{print $3 " / " $2}')
+              CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | xargs)
+              BUILD_PROC=$(ps aux | grep '[b]uildozer' | awk '{print "PID:" $2 " CPU:" $3"%" " MEM:" $4"%"}')
+              echo "[$TIMESTAMP] Mem: $MEM_USAGE | Load: $CPU_LOAD | Buildozer: ${BUILD_PROC:-not found}"
+            done
+          } &
+          MONITOR_PID=$!
+          trap "kill $MONITOR_PID 2>/dev/null" EXIT
+          
+          # Run build
+          buildozer -v android debug
+          BUILD_STATUS=$?
+          
+          # Stop monitor
+          kill $MONITOR_PID 2>/dev/null || true
+          
+          exit $BUILD_STATUS
+      
+      - name: List bin directory (debug)
+        if: always()
+        run: |
+          echo "Contents of bin/ directory:"
+          ls -lah bin/ || echo "bin/ directory not found"
+      
+      - name: Verify APK exists
+        id: verify
+        run: |
+          set -euo pipefail
+          
+          echo "Searching for APK files..."
+          APK_FILE=""
+          
+          # Step 1: Search in bin/ first (preferred location)
+          echo "[Step 1] Searching in bin/..."
+          BIN_APKS=$(find bin -maxdepth 1 -type f -name "*.apk" 2>/dev/null || true)
+          
+          # Step 2: If not found in bin/, search in buildozer paths (acotadas: only specific output dirs)
+          if [ -z "$BIN_APKS" ]; then
+            echo "[Step 2] No APKs in bin/, searching in buildozer paths..."
+            BUILDOZER_APKS=$(find .buildozer -type f \( -path "*/build/outputs/apk/*/*.apk" -o -path "*/dists/*/build/outputs/apk/*/*.apk" -o -path "*/outputs/*/*.apk" \) 2>/dev/null || true)
+            BIN_APKS="$BUILDOZER_APKS"
+          fi
+          
+          # Step 3: If still not found, fail with diagnostics
+          if [ -z "$BIN_APKS" ]; then
+            echo ""
+            echo "════════════════════════════════════════════════════════════════"
+            echo "❌ VERIFICATION FAILED: No APK file found"
+            echo "════════════════════════════════════════════════════════════════"
+            echo ""
+            echo "[Diagnostic: bin/ directory contents]"
+            ls -la bin 2>/dev/null || echo "bin/ directory does not exist"
+            echo ""
+            echo "[Diagnostic: .buildozer structure]"
+            find .buildozer -maxdepth 3 -type d -name 'outputs' 2>/dev/null | head -5 || echo "No buildozer outputs dirs found"
+            echo ""
+            echo "Build process did not generate APK. Check logs above for build errors."
+            exit 1
+          fi
+          
+          # Step 4: If multiple APKs exist, select the most recent by mtime (avoids old cache)
+          echo "[Step 4] Selecting most recent APK..."
+          APK_FILE=$(echo "$BIN_APKS" | while read -r f; do
+            stat -c "%Y %n" "$f" 2>/dev/null || true
+          done | sort -rn | head -1 | cut -d' ' -f2-)
+          
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ FAILED: Could not select APK from candidates"
+            exit 1
+          fi
+          
+          echo "✓ APK selected (most recent): $APK_FILE"
+          echo ""
+          
+          # Step 5: Validate APK - not empty (test -s)
+          if ! test -s "$APK_FILE"; then
+            echo "❌ FAILED: APK file is empty (0 bytes): $APK_FILE"
+            exit 1
+          fi
+          echo "✓ File size: $(du -h "$APK_FILE" | cut -f1)"
+          
+          # Step 6: Validate APK - valid ZIP archive (unzip -t)
+          command -v unzip >/dev/null || { echo "❌ unzip not installed"; exit 1; }
+          if ! unzip -t "$APK_FILE" > /dev/null 2>&1; then
+            echo "❌ FAILED: APK is not a valid ZIP archive: $APK_FILE"
+            unzip -t "$APK_FILE" 2>&1 | head -20
+            exit 1
+          fi
+          echo "✓ ZIP integrity verified"
+          echo ""
+          
+          echo "✅ APK verification PASSED:"
+          ls -lh "$APK_FILE"
+          echo ""
+          
+          # Step 7: Export APK path as step output for downstream steps (GitHub Actions)
+          echo "apk_path=$APK_FILE" >> "$GITHUB_OUTPUT"
+      
+      - name: Post-build Gradle diagnostics
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "POST-BUILD GRADLE DIAGNOSTICS"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          echo "[Gradle Cache Size]"
+          if [ -d ~/.gradle ]; then
+            GRADLE_SIZE=$(du -sh ~/.gradle | awk '{print $1}')
+            echo "~/.gradle size: $GRADLE_SIZE"
+          else
+            echo "~/.gradle not found"
+          fi
+          
+          echo ""
+          echo "[Local Buildozer Cache]"
+          if [ -d .buildozer ]; then
+            LOCAL_CACHE=$(du -sh .buildozer | awk '{print $1}')
+            echo ".buildozer size: $LOCAL_CACHE"
+          else
+            echo ".buildozer not found"
+          fi
+          
+          echo ""
+          echo "[Memory After Build]"
+          free -h | grep Mem
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+      
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: ${{ steps.verify.outputs.apk_path }}
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,294 @@
+{
+  "title": "Barcelona Survival Mode - Nivell 1",
+  "description": "Aprèn el català essencial per sobreviure al metro de Barcelona",
+  "intro": "Acabes d'arribar a Barcelona. El metro serà la teva primera prova.",
+  "scenarios": [
+    {
+      "id": "buy_ticket",
+      "title": "Comprar un bitllet",
+      "narrative": [
+        "Estàs a l'estació.",
+        "Necessites comprar un bitllet."
+      ],
+      "context": "A Barcelona, pots comprar el 'bitllet senzill' per a un viatge o la 'T-Casual' per a 10 viatges.",
+      "task_type": "choice",
+      "question": "Què has de demanar?",
+      "choices": [
+        {
+          "text": "Un bitllet senzill, si us plau",
+          "correct": true,
+          "feedback": "Perfecte! Això et durà un viatge."
+        },
+        {
+          "text": "One ticket please",
+          "correct": false,
+          "feedback": "Prova en català! 'Un bitllet senzill, si us plau'"
+        },
+        {
+          "text": "Quiero un billete",
+          "correct": false,
+          "feedback": "Estem a Catalunya! En català és 'Un bitllet senzill, si us plau'"
+        }
+      ]
+    },
+    {
+      "id": "ask_direction",
+      "title": "Preguntar la direcció",
+      "narrative": [
+        "Vols anar a Sagrada Família.",
+        "No saps quina línia agafar."
+      ],
+      "context": "Al metro de Barcelona, sempre pregunta 'On és...?' o 'Com puc arribar a...?'",
+      "task_type": "choice",
+      "question": "Com ho preguntes?",
+      "choices": [
+        {
+          "text": "On és la Sagrada Família?",
+          "correct": true,
+          "feedback": "Excel·lent! Aquesta és la manera més natural."
+        },
+        {
+          "text": "Where is Sagrada Família?",
+          "correct": false,
+          "feedback": "Intenta en català: 'On és la Sagrada Família?'"
+        },
+        {
+          "text": "Dame la dirección",
+          "correct": false,
+          "feedback": "En català: 'On és la Sagrada Família?'"
+        }
+      ]
+    },
+    {
+      "id": "understand_sortida",
+      "title": "Entendre 'Sortida'",
+      "narrative": [
+        "Has arribat a la teva parada.",
+        "Veus un cartell que diu 'SORTIDA'."
+      ],
+      "context": "'Sortida' és una de les paraules més importants al metro. Vol dir 'exit' (sortida).",
+      "task_type": "choice",
+      "question": "Què significa 'SORTIDA'?",
+      "choices": [
+        {
+          "text": "Sortida / Exit",
+          "correct": true,
+          "feedback": "Correcte! Sempre segueix 'SORTIDA' per sortir."
+        },
+        {
+          "text": "Entrada / Entrance",
+          "correct": false,
+          "feedback": "No! 'SORTIDA' vol dir sortida/exit. 'Entrada' és 'entrada'."
+        },
+        {
+          "text": "Andana / Platform",
+          "correct": false,
+          "feedback": "'SORTIDA' és la sortida. L'andana és on esperes el tren."
+        }
+      ]
+    },
+    {
+      "id": "identify_direction",
+      "title": "Identificar la direcció",
+      "narrative": [
+        "Vols anar a Trinitat Nova.",
+        "Veus dos trens: 'Direcció Trinitat Nova' i 'Direcció Zona Universitària'."
+      ],
+      "context": "Al metro, la 'direcció' indica l'última estació de la línia. Agafa el tren amb el nom de la teva destinació o més enllà.",
+      "task_type": "choice",
+      "question": "Quin tren agafes?",
+      "choices": [
+        {
+          "text": "Direcció Trinitat Nova",
+          "correct": true,
+          "feedback": "Perfecte! Aquest tren va cap on vols anar."
+        },
+        {
+          "text": "Direcció Zona Universitària",
+          "correct": false,
+          "feedback": "Aquest tren va en direcció contrària!"
+        },
+        {
+          "text": "Qualsevol tren",
+          "correct": false,
+          "feedback": "No! Comprova sempre la 'direcció' del tren."
+        }
+      ]
+    },
+    {
+      "id": "read_signage",
+      "title": "Llegir els cartells",
+      "narrative": [
+        "Estàs perdut a l'estació.",
+        "Veus un cartell: 'Enllaç L5 → '"
+      ],
+      "context": "'Enllaç' vol dir 'connection' (connexió). Et porta a una altra línia de metro.",
+      "task_type": "choice",
+      "question": "Què significa 'Enllaç'?",
+      "choices": [
+        {
+          "text": "Connexió amb altra línia",
+          "correct": true,
+          "feedback": "Sí! 'Enllaç' et porta a canviar de línia."
+        },
+        {
+          "text": "Sortida al carrer",
+          "correct": false,
+          "feedback": "'Enllaç' no és sortida, és connexió amb altra línia."
+        },
+        {
+          "text": "Lavabos",
+          "correct": false,
+          "feedback": "'Enllaç' significa connexió entre línies."
+        }
+      ]
+    },
+    {
+      "id": "order_coffee",
+      "title": "Demanar un cafè",
+      "narrative": [
+        "Tens sed després del trajecte.",
+        "Hi ha un bar a prop de l'estació."
+      ],
+      "context": "A Barcelona, un 'cafè amb llet' és un 'tallat'. Un 'cafè sol' és un 'cafè sol' o 'cafè'.",
+      "task_type": "choice",
+      "question": "Com demanes un cafè amb llet?",
+      "choices": [
+        {
+          "text": "Un tallat, si us plau",
+          "correct": true,
+          "feedback": "Perfecte! Has demanat un cafè amb llet."
+        },
+        {
+          "text": "A coffee with milk please",
+          "correct": false,
+          "feedback": "Prova en català: 'Un tallat, si us plau'"
+        },
+        {
+          "text": "Un café con leche",
+          "correct": false,
+          "feedback": "En català: 'Un tallat, si us plau'"
+        }
+      ]
+    },
+    {
+      "id": "ask_where_is",
+      "title": "Preguntar 'On és...?'",
+      "narrative": [
+        "No trobes els lavabos.",
+        "Has de preguntar."
+      ],
+      "context": "'On és...?' és la frase més útil per preguntar ubicacions. 'On són...?' per plural.",
+      "task_type": "choice",
+      "question": "Com preguntes pels lavabos?",
+      "choices": [
+        {
+          "text": "On són els lavabos?",
+          "correct": true,
+          "feedback": "Excel·lent! Has preguntat correctament."
+        },
+        {
+          "text": "Where is the bathroom?",
+          "correct": false,
+          "feedback": "En català: 'On són els lavabos?'"
+        },
+        {
+          "text": "¿Dónde están los baños?",
+          "correct": false,
+          "feedback": "En català: 'On són els lavabos?'"
+        }
+      ]
+    },
+    {
+      "id": "understand_andana",
+      "title": "Entendre 'Andana'",
+      "narrative": [
+        "Et diuen: 'Vés a l'andana 2'.",
+        "No saps què vol dir."
+      ],
+      "context": "'Andana' vol dir 'platform' (andén). És on esperes el tren.",
+      "task_type": "choice",
+      "question": "Què és una 'andana'?",
+      "choices": [
+        {
+          "text": "La plataforma on esperes el tren",
+          "correct": true,
+          "feedback": "Correcte! L'andana és la plataforma."
+        },
+        {
+          "text": "El bitllet",
+          "correct": false,
+          "feedback": "'Andana' és la plataforma, no el bitllet."
+        },
+        {
+          "text": "La sortida",
+          "correct": false,
+          "feedback": "'Andana' és on esperes el tren, no la sortida."
+        }
+      ]
+    },
+    {
+      "id": "polite_phrases",
+      "title": "Ser educat",
+      "narrative": [
+        "Vols demanar ajuda.",
+        "No saps com començar."
+      ],
+      "context": "'Perdona' o 'Disculpa' per començar. 'Gràcies' per agrair. 'Si us plau' per demanar.",
+      "task_type": "choice",
+      "question": "Com comences a parlar amb algú?",
+      "choices": [
+        {
+          "text": "Perdona, pots ajudar-me?",
+          "correct": true,
+          "feedback": "Perfecte! Sempre comença amb 'Perdona' o 'Disculpa'."
+        },
+        {
+          "text": "Hey, help me",
+          "correct": false,
+          "feedback": "Sigues educat! 'Perdona, pots ajudar-me?'"
+        },
+        {
+          "text": "Oye, ayúdame",
+          "correct": false,
+          "feedback": "En català i amb educació: 'Perdona, pots ajudar-me?'"
+        }
+      ]
+    },
+    {
+      "id": "understand_tancat",
+      "title": "Entendre 'Tancat'",
+      "narrative": [
+        "Vols entrar a una botiga.",
+        "Hi ha un cartell: 'TANCAT'."
+      ],
+      "context": "'Tancat' vol dir 'closed' (tancat/cerrado). 'Obert' vol dir 'open' (obert).",
+      "task_type": "choice",
+      "question": "Què significa 'TANCAT'?",
+      "choices": [
+        {
+          "text": "Tancat / Closed",
+          "correct": true,
+          "feedback": "Correcte! La botiga està tancada."
+        },
+        {
+          "text": "Obert / Open",
+          "correct": false,
+          "feedback": "'TANCAT' vol dir tancat/closed. 'OBERT' és obert."
+        },
+        {
+          "text": "Sortida / Exit",
+          "correct": false,
+          "feedback": "'TANCAT' és closed, no exit."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "title": "Enhorabona!",
+    "message": "Has sobreviscut a Barcelona – Nivell 1",
+    "badge_id": "survival_barcelona_1",
+    "description": "Has completat les situacions bàsiques del metro de Barcelona.",
+    "next_level": "Aviat: Nivell 2 - Situacions avançades"
+  }
+}

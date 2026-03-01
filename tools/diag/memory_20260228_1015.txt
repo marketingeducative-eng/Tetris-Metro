@@ -1,0 +1,76 @@
+==================================================
+Memory Diagnostics Report
+Generated: Sat Feb 28 10:15:54 CET 2026
+System: Linux DESKTOP-SJ98F92 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+==================================================
+
+=== MEMORY OVERVIEW ===
+
+               total        used        free      shared  buff/cache   available
+Mem:           7.6Gi       1.4Gi       6.2Gi       3.5Mi       222Mi       6.2Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+=== SWAP STATUS ===
+
+NAME     TYPE      SIZE USED PRIO
+/dev/sdc partition   2G   0B   -2
+
+=== RESOURCE LIMITS (ulimit -a) ===
+
+real-time non-blocking time  (microseconds, -R) unlimited
+core file size              (blocks, -c) 0
+data seg size               (kbytes, -d) unlimited
+scheduling priority                 (-e) 0
+file size                   (blocks, -f) unlimited
+pending signals                     (-i) 31093
+max locked memory           (kbytes, -l) 65536
+max memory size             (kbytes, -m) unlimited
+open files                          (-n) 1048576
+pipe size                (512 bytes, -p) 8
+POSIX message queues         (bytes, -q) 819200
+real-time priority                  (-r) 0
+stack size                  (kbytes, -s) 8192
+cpu time                   (seconds, -t) unlimited
+max user processes                  (-u) 31093
+virtual memory              (kbytes, -v) unlimited
+file locks                          (-x) unlimited
+
+=== TOP 15 PROCESSES BY RSS ===
+
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+xavi_de+    2333  5.6  9.6 67229348 771652 pts/2 Sl+  09:46   1:38 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node --dns-result-order=ipv4first /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=true
+xavi_de+    2270  0.6  1.8 11860340 146104 pts/2 Rl+  09:46   0:11 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/out/server-main.js --host=127.0.0.1 --port=0 --connection-token=264937578-3491759305-3897207071-977381476 --use-host-proxy --without-browser-env-var --disable-websocket-compression --accept-server-license-terms --telemetry-level=all
+xavi_de+    2903  0.1  0.9 1066456 74028 pts/2   Sl+  09:49   0:02 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/out/bootstrap-fork --type=ptyHost --logsPath /home/xavi_delgado/.vscode-server/data/logs/20260228T094523
+xavi_de+    2305  0.1  0.8 1328876 65344 pts/2   Sl+  09:46   0:02 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/out/bootstrap-fork --type=fileWatcher
+xavi_de+    5894  0.0  0.8 1020040 64908 pts/2   Sl+  10:05   0:00 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=2333
+xavi_de+    2627  0.0  0.7 1017932 63476 pts/2   Sl+  09:48   0:00 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=2333
+xavi_de+    3717  0.2  0.7 1018164 61580 pts/4   Ssl+ 09:53   0:03 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node -e const net = require('net'); process.stdin.pause(); const client = net.createConnection({ host: '127.0.0.1', port: 44875 }, () => { client.pipe(process.stdout); process.stdin.pipe(client); }); client.on('close', function (hadError) { console.error(hadError ? 'Remote close with error' : 'Remote close'); process.exit(hadError ? 1 : 0); }); client.on('error', function (err) { process.stderr.write(err && (err.stack || err.message) || String(err)); });
+xavi_de+    3702  0.1  0.7 1012844 56084 pts/3   Ssl+ 09:53   0:01 /home/xavi_delgado/.vscode-server/bin/072586267e68ece9a47aa43f8c108e0dcbf44622/node -e const net = require('net'); process.stdin.pause(); const client = net.createConnection({ host: '127.0.0.1', port: 44875 }, () => { client.pipe(process.stdout); process.stdin.pipe(client); }); client.on('close', function (hadError) { console.error(hadError ? 'Remote close with error' : 'Remote close'); process.exit(hadError ? 1 : 0); }); client.on('error', function (err) { process.stderr.write(err && (err.stack || err.message) || String(err)); });
+root         248  0.0  0.2 107012 21888 ?        Ssl  09:26   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root          40  0.0  0.1  66836 15072 ?        S<s  09:26   0:00 /usr/lib/systemd/systemd-journald
+systemd+     104  0.0  0.1  21460 12288 ?        Ss   09:26   0:00 /usr/lib/systemd/systemd-resolved
+root           1  0.0  0.1  21784 12124 ?        Ss   09:26   0:00 /sbin/init
+xavi_de+     389  0.0  0.1  20312 11136 ?        Ss   09:26   0:00 /usr/lib/systemd/systemd --user
+root         182  0.0  0.1  17964  8320 ?        Ss   09:26   0:00 /usr/lib/systemd/systemd-logind
+polkitd      752  0.0  0.0 308164  7680 ?        Ssl  09:27   0:00 /usr/lib/polkit-1/polkitd --no-debug
+
+=== BUILD-RELATED PROCESSES ===
+
+*** PYTHON PROCESSES ***
+root         248  0.0  0.2 107012 21888 ?        Ssl  09:26   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+
+=== MEMORY METRICS ===
+
+Memory Usage: 18%
+
+=== SYSTEM LOAD ===
+
+ 10:15:54 up 49 min,  1 user,  load average: 0.07, 0.16, 0.11
+
+=== VIRTUAL MEMORY STATS ===
+
+ 0  0      0 6456212   1188 228988    0    0     0     0 1431 2070  1  1 98  0  0  0
+
+==================================================
+End of Report
+==================================================
