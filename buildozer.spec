@@ -77,8 +77,8 @@ android.use_ndk_build = 0
 
 # CRITICAL FIX: Enable pyjnius setup.py execution to generate config.pxi
 # Required for Cython compilation of pyjnius 1.4+
-# If set to 1 (ignore setup.py), Cython fails: "'config.pxi' not found"
-p4a_ignore_setuppy = 0
+# Modern Buildozer token: true => --use-setup-py, false => --ignore-setup-py
+p4a.setup_py = true
 
 [buildozer]
 
