@@ -3,7 +3,6 @@ GameController - Orchestrates model and UI
 """
 from enum import Enum
 from model import Board, Piece, Rules, ScoringSystem, MetroContentManager
-from kivy.storage.jsonstore import JsonStore
 from game.album_store import AlbumStore
 from game.order_track import OrderTrackManager
 from game.direction_mission import DirectionMission
@@ -46,8 +45,9 @@ class GameController:
         
         # Persistence
         try:
+            from kivy.storage.jsonstore import JsonStore  # noqa: PLC0415
             self.store = JsonStore('data/game_data.json')
-        except:
+        except Exception:
             self.store = None
         
         # Feedback
