@@ -139,8 +139,9 @@ jobs:
           echo "Configuring Java/Gradle for CI environment..."
           
           # Export environment variables for this step and all following steps
+          echo "CYTHON_LANGUAGE_LEVEL=3" >> $GITHUB_ENV
           echo "JAVA_TOOL_OPTIONS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled" >> $GITHUB_ENV
-          echo "GRADLE_OPTS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:G1NewCollectionOverheadPercent=20 -XX:G1MaxGCPauseMillis=50" >> $GITHUB_ENV
+          echo "GRADLE_OPTS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:G1MaxGCPauseMillis=50" >> $GITHUB_ENV
           echo "GRADLE_USER_HOME=$HOME/.gradle" >> $GITHUB_ENV
           
           # Verify gradle.properties exists
@@ -154,6 +155,7 @@ jobs:
           # Show effective settings
           echo ""
           echo "Effective settings:"
+          echo "  CYTHON_LANGUAGE_LEVEL: 3"
           echo "  JAVA_TOOL_OPTIONS: $JAVA_TOOL_OPTIONS"
           echo "  GRADLE_OPTS (will use above)"
           echo "  Java max heap: 1024m"

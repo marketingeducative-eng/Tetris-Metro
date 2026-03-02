@@ -125,6 +125,15 @@ jobs:
         run: |
           mkdir -p ~/.buildozer/android/platform
           yes | sdkmanager --licenses || true
+
+      - name: Configure Cython/JVM for CI
+        run: |
+          echo "Configuring Cython and Java/Gradle for CI environment..."
+          echo "CYTHON_LANGUAGE_LEVEL=3" >> $GITHUB_ENV
+          echo "JAVA_TOOL_OPTIONS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled" >> $GITHUB_ENV
+          echo "GRADLE_OPTS=-Xmx1024m -Xms256m -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:G1MaxGCPauseMillis=50" >> $GITHUB_ENV
+          echo "GRADLE_USER_HOME=$HOME/.gradle" >> $GITHUB_ENV
+          echo "Configured CYTHON_LANGUAGE_LEVEL=3 and sanitized JVM options"
       
       - name: Pre-build: JVM and Memory Configuration
         run: |
