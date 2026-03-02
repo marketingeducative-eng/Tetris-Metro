@@ -38,8 +38,11 @@ android.api = 31
 # Minimum API required
 android.minapi = 21
 
-# Android SDK version to use
-android.sdk = 31
+# Android SDK version to use (DEPRECATED - buildozer ignores this, use android.api instead)
+# android.sdk = 31
+
+# Android NDK API level
+android.ndk_api = 21
 
 # Android NDK version to use
 android.ndk = 25b
