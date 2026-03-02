@@ -1,0 +1,228 @@
+name: pyjnius Smoke Test (Fast Validation)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'buildozer.spec'
+      - '.github/workflows/pyjnius-smoke.yml'
+      - '.github/workflows/android-*.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'buildozer.spec'
+      - '.github/workflows/pyjnius-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  pyjnius-smoke:
+    runs-on: ubuntu-latest
+    name: Validate pyjnius+Cython compilation (no APK packaging)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install system dependencies (minimal)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libffi-dev \
+            libssl-dev \
+            python3-setuptools
+      
+      - name: Cache buildozer/p4a artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: ${{ runner.os }}-pyjnius-smoke-arm64-py3.10-${{ hashFiles('buildozer.spec', '.github/workflows/pyjnius-smoke.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pyjnius-smoke-arm64-py3.10-
+            ${{ runner.os }}-pyjnius-smoke-arm64-
+      
+      - name: Install pinned Python dependencies
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "Installing Python dependencies with PINNED versions"
+          echo "════════════════════════════════════════════════════════════════"
+          pip install --upgrade pip setuptools wheel
+          pip install --no-cache-dir buildozer
+          pip install --no-cache-dir 'Cython==0.29.36'
+          pip install --no-cache-dir python-for-android
+          echo ""
+          echo "✓ Dependencies installed"
+      
+      - name: Verify pinned versions (STRICT - no tolerance)
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "STRICT DEPENDENCY VERIFICATION (Determinism Check)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[Environment]"
+          python -V
+          echo ""
+          echo "[All Installed Versions]"
+          pip freeze | grep -E "^Cython==|^pyjnius==|^python-for-android==|^buildozer==" || echo "(pyjnius not installed by pip - will be by p4a)"
+          echo ""
+          echo "[Critical Check: Cython Version]"
+          CYTHON_VERSION=$(python3 -c "import Cython; print(Cython.__version__)" 2>/dev/null || echo "NOT_FOUND")
+          echo "Detected: $CYTHON_VERSION"
+          echo "Required: 0.29.36"
+          echo ""
+          
+          # STRICT assertion - fail if not exact match
+          python -c "import Cython; assert Cython.__version__ == '0.29.36', f'Cython version mismatch: {Cython.__version__} != 0.29.36'" || {
+            echo ""
+            echo "❌ CRITICAL: Cython version mismatch!"
+            echo ""
+            echo "This WILL cause: jnius/jnius_utils.pxi:323:37: undeclared name not builtin: long"
+            echo ""
+            echo "Expected: 0.29.36 (Python 3 compatible, supports 'long' type)"
+            echo "Found:    $CYTHON_VERSION"
+            exit 1
+          }
+          
+          echo "✅ Cython 0.29.36 verified (exact match)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
+      - name: Configure Android SDK/NDK paths
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          yes | sdkmanager --licenses || true
+      
+      - name: Make smoke test script executable
+        run: chmod +x scripts/ci_pyjnius_smoke.sh
+      
+      - name: Run pyjnius smoke test (p4a direct build)
+        id: smoke_test
+        continue-on-error: true
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "SMOKE TEST: pyjnius Compilation Validation"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "Architecture: arm64-v8a (only arch supported by this project)"
+          echo "Strategy: Use python-for-android toolchain directly"
+          echo "          to build pyjnius recipe WITHOUT APK/Gradle assembly"
+          echo ""
+          echo "If the historical bug were present, this would fail with:"
+          echo "  → jnius/jnius_utils.pxi:323:37: undeclared name not builtin: long"
+          echo "  → clang: error: no such file or directory: 'jnius/jnius.c'"
+          echo ""
+          
+          # Run smoke test script with architecture parameter
+          bash scripts/ci_pyjnius_smoke.sh arm64-v8a 21
+          TEST_EXIT=$?
+          
+          echo "test_exit_code=$TEST_EXIT" >> "$GITHUB_OUTPUT"
+          exit $TEST_EXIT
+      
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyjnius-smoke-logs-arm64-v8a
+          path: pyjnius_smoke_arm64-v8a.log
+          if-no-files-found: warn
+          retention-days: 14
+      
+      - name: Evaluate smoke test result
+        if: always()
+        run: |
+          EXIT_CODE=${{ steps.smoke_test.outputs.test_exit_code }}
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+          echo "SMOKE TEST RESULT EVALUATION"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "Exit code: $EXIT_CODE"
+          echo ""
+          
+          case "$EXIT_CODE" in
+            0)
+              echo "✅ PASSED: pyjnius compiled successfully"
+              echo ""
+              echo "The fix (Cython 0.29.36 + pyjnius 1.6.1) is working correctly."
+              echo "Historical bug NOT present."
+              exit 0
+              ;;
+            1)
+              echo "❌ FAILED: Historical bug detected"
+              echo ""
+              echo "One of these errors was found:"
+              echo "  • undeclared name not builtin: long (Cython 3.x incompatibility)"
+              echo "  • jnius.c missing (cascade error from Cython failure)"
+              echo ""
+              echo "Check the uploaded logs for details."
+              exit 1
+              ;;
+            2)
+              echo "⚠️  INCONCLUSIVE: No errors but no positive evidence"
+              echo ""
+              echo "The build ran without historical bugs, but we couldn't"
+              echo "confirm that pyjnius actually compiled."
+              echo ""
+              echo "Treating as FAILURE for CI safety."
+              echo "::warning::Smoke test inconclusive - check logs"
+              exit 1
+              ;;
+            *)
+              echo "❌ UNEXPECTED: Unknown exit code"
+              echo ""
+              echo "Check the uploaded logs for details."
+              exit 1
+              ;;
+          esac
+      
+      - name: Smoke test summary
+        if: always()
+        run: |
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+          echo "SMOKE TEST SUMMARY"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "Purpose: Validate Cython 0.29.36 + pyjnius 1.6.1"
+          echo "         compiles WITHOUT the historical bug"
+          echo ""
+          echo "Historical bug symptoms:"
+          echo "  • jnius/jnius_utils.pxi:323:37: undeclared name not builtin: long"
+          echo "  • clang: error: no such file or directory: 'jnius/jnius.c'"
+          echo ""
+          echo "What this test does:"
+          echo "  ✓ Verifies exact Cython version (0.29.36)"
+          echo "  ✓ Uses p4a toolchain directly (NOT buildozer android debug)"
+          echo "  ✓ Compiles pyjnius recipe for arm64-v8a with Cython"
+          echo "  ✓ Stops BEFORE Gradle/APK assembly"
+          echo "  ✓ Requires positive evidence (not just absence of errors)"
+          echo ""
+          echo "Why single architecture:"
+          echo "  • buildozer.spec defines: android.archs = arm64-v8a"
+          echo "  • armeabi-v7a explicitly marked as incompatible"
+          echo "  • Testing one arch is sufficient to validate Cython/pyjnius fix"
+          echo ""
+          echo "Exit codes:"
+          echo "  0 = Success (pyjnius compiled)"
+          echo "  1 = Failure (bug detected or inconclusive)"
+          echo ""
+          echo "Logs uploaded as artifact: pyjnius-smoke-logs-arm64-v8a"
+          echo "════════════════════════════════════════════════════════════════"
