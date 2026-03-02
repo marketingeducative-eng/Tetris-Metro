@@ -186,8 +186,21 @@ jobs:
               echo "The build ran without historical bugs, but we couldn't"
               echo "confirm that pyjnius actually compiled."
               echo ""
-              echo "Treating as FAILURE for CI safety."
-              echo "::warning::Smoke test inconclusive - check logs"
+              echo "Positive evidence patterns searched for:"
+              echo "  LOG patterns:"
+              echo "    • 'Cythonize jnius/jnius.pyx'"
+              echo "    • 'building <jnius> extension'"
+              echo "    • 'recipe pyjnius' + compile markers"
+              echo "    • 'pyjnius.*build|compile' combined indicators"
+              echo ""
+              echo "  ARTIFACTS (in .buildozer or build/):"
+              echo "    • *jnius*.o (object files)"
+              echo "    • *jnius*.c (generated C source)"
+              echo "    • *jnius*.so (shared object libraries)"
+              echo "    • libpyjnius*.so (named variants)"
+              echo ""
+              echo "Treating as FAILURE for CI safety (requires positive evidence)."
+              echo "::warning::Smoke test inconclusive - check logs for evidence patterns"
               exit 1
               ;;
             *)

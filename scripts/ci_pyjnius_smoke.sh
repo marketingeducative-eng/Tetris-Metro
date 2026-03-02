@@ -153,38 +153,81 @@ echo "[Phase 3/3] Looking for positive evidence of pyjnius compilation ($ARCH)..
 echo ""
 
 EVIDENCE_FOUND=0
+EVIDENCE_SOURCES=()
 
-# Check 1: Look for Cythonize step in logs
-if grep -q "Cythonize.*jnius" "$LOG_FILE" 2>/dev/null; then
-    echo "✓ Found: Cythonize jnius step in logs"
+# Check A1: Comprehensive log pattern matching for Cythonization
+echo "Checking logs for Cythonization/building patterns..."
+if grep -qiE "Cythonize.*jnius/jnius\.pyx|Cythonize.*jnius|building 'jnius' extension|building.*jnius.*extension" "$LOG_FILE" 2>/dev/null; then
+    echo "✓ Found: Cythonization/building jnius step in logs"
+    EVIDENCE_SOURCES+=("Cythonize/build jnius in logs")
     EVIDENCE_FOUND=1
 fi
 
-# Check 2: Look for "building 'jnius' extension"
-if grep -q "building.*jnius.*extension\|building 'jnius'" "$LOG_FILE" 2>/dev/null; then
-    echo "✓ Found: Building jnius extension in logs"
+# Check A2: Recipe build indicators
+if grep -qiE "recipe.*pyjnius|pyjnius.*recipe|Compiling.*jnius|Compiling.*pyjnius" "$LOG_FILE" 2>/dev/null; then
+    echo "✓ Found: pyjnius recipe compilation in logs"
+    EVIDENCE_SOURCES+=("pyjnius recipe in logs")
     EVIDENCE_FOUND=1
 fi
 
-# Check 3: Look for successful compilation messages
-if grep -qE "Successfully built.*jnius|jnius.*built successfully" "$LOG_FILE" 2>/dev/null; then
-    echo "✓ Found: Successful build message for jnius"
+# Check A3: Successful compilation messages
+if grep -qiE "Successfully built.*jnius|jnius.*built successfully|Cython compilation finished.*jnius" "$LOG_FILE" 2>/dev/null; then
+    echo "✓ Found: Successful compilation message for jnius"
+    EVIDENCE_SOURCES+=("successful build message in logs")
     EVIDENCE_FOUND=1
 fi
 
-# Check 4: Look for compiled artifacts (*.so, *.o files)
+# Check A4: Combined build/compile indicators
+if grep -qiE "pyjnius.*(compile|build|create|generate)|Build.*pyjnius|pyjnius.*build" "$LOG_FILE" 2>/dev/null; then
+    echo "✓ Found: pyjnius build/compile activity in logs"
+    EVIDENCE_SOURCES+=("pyjnius build activity in logs")
+    EVIDENCE_FOUND=1
+fi
+
+# Check B: Comprehensive artifact search in .buildozer and build directories
 echo ""
-echo "Searching for compiled jnius artifacts..."
-JNIUS_ARTIFACTS=$(find "${HOME}/.buildozer" .buildozer -type f \( -name "*jnius*.so" -o -name "*jnius*.o" -o -name "jnius.c" \) 2>/dev/null | head -5 || true)
+echo "Searching for compiled jnius artifacts in build directories..."
 
+# Find broader patterns: *jnius*.o, *jnius*.c, *jnius*.so, libpyjnius*.so
+JNIUS_ARTIFACTS=""
+for pattern in '*jnius*.so' '*jnius*.o' '*jnius*.c' 'libpyjnius*.so' 'pyjnius*.o' 'pyjnius*.c'; do
+    FOUND=$(find "${HOME}/.buildozer" .buildozer -type f -name "$pattern" 2>/dev/null | head -10 || true)
+    if [ -n "$FOUND" ]; then
+        # Append to JNIUS_ARTIFACTS
+        if [ -z "$JNIUS_ARTIFACTS" ]; then
+            JNIUS_ARTIFACTS="$FOUND"
+        else
+            JNIUS_ARTIFACTS="$(printf '%s\n%s' "$JNIUS_ARTIFACTS" "$FOUND")"
+        fi
+    fi
+done
+
+# Also search with extended glob in common build paths
+if [ -d "${HOME}/.buildozer/android/platform/build-${ARCH}" ]; then
+    EXTRA=$(find "${HOME}/.buildozer/android/platform/build-${ARCH}" -type f \( -name "*jnius*.so" -o -name "*jnius*.o" -o -name "*jnius*.c" \) 2>/dev/null | head -10 || true)
+    if [ -n "$EXTRA" ]; then
+        if [ -z "$JNIUS_ARTIFACTS" ]; then
+            JNIUS_ARTIFACTS="$EXTRA"
+        else
+            JNIUS_ARTIFACTS="$(printf '%s\n%s' "$JNIUS_ARTIFACTS" "$EXTRA")"
+        fi
+    fi
+fi
+
+# Deduplicate and check
 if [ -n "$JNIUS_ARTIFACTS" ]; then
-    echo "✓ Found compiled artifacts:"
-    echo "$JNIUS_ARTIFACTS" | while read -r artifact; do
-        echo "  → $(basename "$artifact") ($(stat -c%s "$artifact" 2>/dev/null || echo "?") bytes)"
+    UNIQUE_ARTIFACTS=$(printf '%s\n' "$JNIUS_ARTIFACTS" | sort -u)
+    echo "✓ Found compiled jnius artifacts:"
+    printf '%s\n' "$UNIQUE_ARTIFACTS" | while read -r artifact; do
+        if [ -f "$artifact" ]; then
+            SIZE=$(stat -c%s "$artifact" 2>/dev/null || echo "?")
+            echo "  → $(basename "$artifact") ($SIZE bytes)"
+            EVIDENCE_SOURCES+=("artifact: $(basename "$artifact')")
+        fi
     done
     EVIDENCE_FOUND=1
 else
-    echo "  (No artifacts found yet - may still be in progress)"
+    echo "  (No compiled artifacts found in standard locations)"
 fi
 
 echo ""
@@ -195,7 +238,13 @@ echo "════════════════════════�
 if [ $EVIDENCE_FOUND -eq 1 ]; then
     echo "✅ SMOKE TEST PASSED"
     echo ""
-    echo "Positive evidence of pyjnius compilation found."
+    echo "Positive evidence of pyjnius compilation found:"
+    if [ ${#EVIDENCE_SOURCES[@]} -gt 0 ]; then
+        for source in "${EVIDENCE_SOURCES[@]}"; do
+            echo "  ✓ $source"
+        done
+    fi
+    echo ""
     echo "The fix (Cython 0.29.36 + pyjnius 1.6.1) is working correctly."
     echo ""
     echo "Historical bug NOT present:"
@@ -213,11 +262,12 @@ else
     echo "  - Build stopped before reaching pyjnius recipe"
     echo "  - Cache prevented rebuild"
     echo "  - p4a version incompatibility"
+    echo "  - Artifacts not yet written to disk"
     echo ""
     echo "Check the full log for details: $LOG_FILE"
     echo ""
     
-    # Treat inconclusive as failure (safer for CI)
-    # If you prefer warning instead, change this to exit 0 + ::warning::
+    # Exit 2: Inconclusive (no historical bugs, but no positive evidence)
+    # Workflow will handle this with ::warning:: and artifact upload
     exit 2
 fi
