@@ -2,7 +2,6 @@
 AlbumStore - Manages persistent progress tracking
 Tracks unlocked stations, stats, and high scores
 """
-from kivy.storage.jsonstore import JsonStore
 from pathlib import Path
 
 
@@ -13,8 +12,9 @@ class AlbumStore:
         """Initialize album store"""
         self.store_path = store_path
         try:
+            from kivy.storage.jsonstore import JsonStore  # noqa: PLC0415
             self.store = JsonStore(store_path)
-        except:
+        except Exception:
             self.store = None
             print(f"Warning: Could not create album store at {store_path}")
     

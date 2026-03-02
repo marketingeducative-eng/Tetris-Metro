@@ -79,7 +79,27 @@ jobs:
       - name: Install buildozer and dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install --upgrade buildozer cython
+          pip install --no-cache-dir buildozer
+          pip install --no-cache-dir 'Cython==0.29.36'
+      
+      - name: Verify pinned dependencies (determinism check)
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "DEPENDENCY VERSION VERIFICATION (Determinism Check)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          CYTHON_VERSION=$(python3 -c "import Cython; print(Cython.__version__)" 2>/dev/null || echo "NOT_FOUND")
+          echo "Cython version: $CYTHON_VERSION (required: 0.29.36)"
+          if [ "$CYTHON_VERSION" != "0.29.36" ]; then
+            echo "❌ CRITICAL: Cython version mismatch!"
+            echo "   Expected: 0.29.36"
+            echo "   Found: $CYTHON_VERSION"
+            echo "   This will cause 'undeclared name not builtin: long' in pyjnius."
+            exit 1
+          fi
+          echo "✅ Cython 0.29.36 verified"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
       
       - name: Update version in buildozer.spec
         run: |

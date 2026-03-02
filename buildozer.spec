@@ -19,8 +19,10 @@ source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttf,otf,wav,ogg,mp3,md
 version = 0.1
 
 # Application requirements
-# pyjnius>=1.4.0 required for Python 3.x compatibility
-requirements = python3,kivy,pyjnius>=1.4.0
+# FIXED: Pin Cython==0.29.36 to prevent Cython 3.x breaking pyjnius compilation
+# Cython 3.x removed 'long' type causing: "undeclared name not builtin: long"
+# pyjnius==1.6.1 is a stable version compatible with Cython 0.29.x
+requirements = python3,kivy,Cython==0.29.36,pyjnius==1.6.1
 
 # Supported orientations: landscape, portrait, portrait-reverse, landscape-reverse
 orientation = portrait

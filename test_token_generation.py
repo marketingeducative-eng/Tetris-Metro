@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from data.metro_loader import load_metro_network
 
 
-def test_token_generation(line, test_index, test_name):
+def _run_token_generation_check(line, test_index, test_name):
     """Test token generation for a specific index"""
     print(f"\n{test_name} (index={test_index}):")
     
@@ -94,7 +94,7 @@ def main():
     # Run each test multiple times to ensure randomization doesn't break uniqueness
     for test_index, test_name in test_cases:
         for run in range(3):
-            test_token_generation(line, test_index, f"{test_name} (run {run+1})")
+            _run_token_generation_check(line, test_index, f"{test_name} (run {run+1})")
     
     print("\n" + "="*50)
     print("✅ ALL TESTS PASSED!")
