@@ -128,11 +128,16 @@ jobs:
           echo "  → clang: error: no such file or directory: 'jnius/jnius.c'"
           echo ""
           
-          # Run smoke test script with architecture parameter
-          bash scripts/ci_pyjnius_smoke.sh arm64-v8a 21
-          TEST_EXIT=$?
+          # Run smoke test script with proper exit code capture
+          # Using PIPESTATUS[0] instead of $? because script uses tee internally
+          set +e
+          bash scripts/ci_pyjnius_smoke.sh arm64-v8a 21 | tee pyjnius_smoke_arm64-v8a.log
+          TEST_EXIT=${PIPESTATUS[0]}
+          set -e
           
+          echo "Captured exit code: $TEST_EXIT"
           echo "test_exit_code=$TEST_EXIT" >> "$GITHUB_OUTPUT"
+          echo "TEST_EXIT=$TEST_EXIT" >> "$GITHUB_ENV"
           exit $TEST_EXIT
       
       - name: Upload smoke test logs
