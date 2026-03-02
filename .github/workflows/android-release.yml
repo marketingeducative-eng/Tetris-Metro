@@ -79,8 +79,8 @@ jobs:
       - name: Install buildozer and dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install --upgrade buildozer
-          pip install 'Cython==0.29.36'
+          pip install --no-cache-dir buildozer
+          pip install --no-cache-dir 'Cython==0.29.36'
       
       - name: Verify pinned dependencies (determinism check)
         run: |
