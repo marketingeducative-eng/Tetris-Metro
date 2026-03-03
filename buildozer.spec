@@ -74,6 +74,11 @@ android.accept_sdk_license = True
 # Use NDK build for faster compilation
 android.use_ndk_build = 0
 
+
+# Exclude CPython test suite from the packaged stdlib
+# It contains intentionally invalid-encoding files (e.g., badsyntax_pep3120.py)
+# which break the byte-compilation step during packaging
+android.exclude_src_dirs = Lib/test,Lib/unittest/test
 # CRITICAL FIX: Enable pyjnius setup.py execution to generate config.pxi
 # Required for Cython compilation of pyjnius 1.4+
 # This PREVENTS ModuleNotFoundError: No module named '_ctypes' during setuptools install
