@@ -61,7 +61,6 @@ android.features =
 
 # Android architecture (compile only arm64-v8a for speed, supports most devices)
 android.archs = arm64-v8a
-
 # Force arm64-v8a only - do NOT add additional architectures
 # This prevents armeabi-v7a compilation which is incompatible with current setup
 
