@@ -379,6 +379,9 @@ jobs:
           echo "Starting build with resource monitoring..."
           echo ""
           
+          # Define BUILD_LOG for later inspection
+          BUILD_LOG=".buildozer_build_$(date +%s).log"
+          
           # Start background resource monitor
           {
             while sleep 10; do
@@ -392,14 +395,72 @@ jobs:
           MONITOR_PID=$!
           trap "kill $MONITOR_PID 2>/dev/null" EXIT
           
-          # Run build
-          buildozer -v android debug
-          BUILD_STATUS=$?
+          # Run build and capture output to both stdout and log file
+          buildozer -v android debug 2>&1 | tee "$BUILD_LOG"
+          BUILD_STATUS=${PIPESTATUS[0]}
+          
+          # Explicitly save BUILD_LOG path in step output for later steps
+          echo "build_log=$BUILD_LOG" >> $GITHUB_OUTPUT
           
           # Stop monitor
           kill $MONITOR_PID 2>/dev/null || true
           
           exit $BUILD_STATUS
+      
+      - name: Verify p4a did NOT use --ignore-setup-py
+        if: steps.build_apk.outcome == 'success'
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "POST-BUILD VERIFICATION: p4a flags check"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          # Extract most recent buildozer log (from ~/.buildozer/logs/)
+          BUILDOZER_LOG=$(find ~/.buildozer -name "buildozer*.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+          
+          if [ -z "$BUILDOZER_LOG" ]; then
+            echo "⚠️  No buildozer log found in ~/.buildozer/logs/"
+            echo "    Attempting to use build log from step..."
+            if [ -f "${{ steps.build_apk.outputs.build_log }}" ]; then
+              BUILDOZER_LOG="${{ steps.build_apk.outputs.build_log }}"
+              echo "✓ Found: $BUILDOZER_LOG"
+            else
+              echo "❌ FAILED: Cannot locate buildozer log for verification"
+              exit 1
+            fi
+          fi
+          
+          echo "Build log: $BUILDOZER_LOG"
+          echo ""
+          
+          # Check that p4a was called with --use-setup-py (NOT --ignore-setup-py)
+          echo "[Checking p4a toolchain invocation...]" 
+          
+          # MUST find --use-setup-py
+          if grep -q -- "--use-setup-py" "$BUILDOZER_LOG" 2>/dev/null; then
+            echo "✓ Found: --use-setup-py (CORRECT)"
+          else
+            echo "⚠️  --use-setup-py not explicitly visible in log"
+            echo "    This may be OK if buildozer internally applies it"
+          fi
+          
+          # MUST NOT find --ignore-setup-py
+          if grep -q -- "--ignore-setup-py" "$BUILDOZER_LOG" 2>/dev/null; then
+            echo "❌ CRITICAL ERROR: Found --ignore-setup-py in build log!"
+            echo "    This will cause ModuleNotFoundError: No module named '_ctypes'"
+            echo ""
+            echo "    Matching lines:"
+            grep -- "--ignore-setup-py" "$BUILDOZER_LOG" | head -5
+            echo ""
+            exit 1
+          else
+            echo "✓ NOT found: --ignore-setup-py (CORRECT)"
+          fi
+          
+          echo ""
+          echo "✅ p4a flag verification PASSED"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
       
       - name: Capture buildozer logs on failure
         if: steps.build_apk.outcome == 'failure'
@@ -478,10 +539,19 @@ jobs:
           path: .artifacts/logs/
           retention-days: 30
       
-      - name: Hard fail if build failed
+      - name: Hard fail gate - force job failure if build failed
         if: steps.build_apk.outcome == 'failure'
         run: |
-          echo "❌ Build step failed. Logs have been captured and uploaded."
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+          echo "❌ HARD FAIL GATE: Build step failed"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "Build logs have been captured and uploaded as artifacts."
+          echo "Check the artifacts for the exact error."
+          echo ""
+          echo "Forcing job to fail with exit code 1..."
+          echo ""
           exit 1
       
       - name: List bin directory (debug)
