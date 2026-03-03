@@ -2,9 +2,10 @@ name: Android Debug Build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - "ci/**"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -175,7 +176,7 @@ jobs:
           echo "✓ SDK: $ANDROID_SDK_ROOT"
           echo ""
           echo "[7. buildozer.spec check (p4a.setup_py must be true)]"
-          if grep -q '^p4a.setup_py = true$' buildozer.spec; then
+          if tr -d '\r' < buildozer.spec | grep -Eq '^\s*p4a\.setup_py\s*=\s*true\s*$'; then
             echo "✓ p4a.setup_py = true (setuptools will use setup.py, not --ignore-setup-py)"
           else
             echo "❌ CRITICAL: p4a.setup_py is not 'true' in buildozer.spec"
@@ -214,14 +215,14 @@ jobs:
           echo ""
           
           # Warn if p4a_ignore_setuppy is set to true (the old problematic setting)
-          if grep -q "^p4a_ignore_setuppy *= *true\|^p4a_ignore_setuppy = true" buildozer.spec; then
+          if tr -d '\r' < buildozer.spec | grep -Eq '^\s*p4a_ignore_setuppy\s*=\s*true\s*$'; then
             echo "❌ WARNING: p4a_ignore_setuppy MUST NOT be 'true'"
             echo "   This will cause ModuleNotFoundError: No module named '_ctypes'"
             exit 1
           fi
           
           # Ensure p4a.setup_py is true
-          if ! grep -q "^p4a.setup_py *= *true\|^p4a.setup_py = true" buildozer.spec; then
+          if ! tr -d '\r' < buildozer.spec | grep -Eq '^\s*p4a\.setup_py\s*=\s*true\s*$'; then
             echo "❌ ERROR: p4a.setup_py must be 'true'"
             exit 1
           fi
@@ -257,11 +258,30 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
-      - name: Accept Android SDK licenses
+      - name: Install Android SDK cmdline-tools (sdkmanager)
+        shell: bash
         run: |
           set -euo pipefail
-          command -v sdkmanager >/dev/null || { echo "sdkmanager not found"; exit 1; }
+          : "${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT not set}"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd /tmp
+          curl -fsSL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip
+          rm -rf "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --version
+      
+      - name: Accept Android SDK licenses + install required packages
+        shell: bash
+        run: |
+          set -euo pipefail
           yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;31.0.0"
       
       - name: Configure Gradle/JVM for CI
         run: |
@@ -344,7 +364,7 @@ jobs:
           
           # 3. Check p4a.setup_py config
           echo "[p4a.setup_py Configuration]"
-          if grep -q '^p4a.setup_py = true$' buildozer.spec; then
+          if tr -d '\r' < buildozer.spec | grep -Eq '^\s*p4a\.setup_py\s*=\s*true\s*$'; then
             echo "  ✓ p4a.setup_py = true"
           else
             echo "❌ FAILED: p4a.setup_py must be 'true' in buildozer.spec"
