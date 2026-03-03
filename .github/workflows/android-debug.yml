@@ -49,9 +49,7 @@ jobs:
       - name: Set up cache for buildozer
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.buildozer
-            .buildozer
+          path: ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
           restore-keys: |
             ${{ runner.os }}-buildozer-
@@ -66,11 +64,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Install system dependencies (OpenSSL + pkg-config)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev openssl
-      
       - name: Install buildozer and dependencies
         run: |
           pip install --upgrade pip setuptools wheel
@@ -201,22 +194,11 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo ""
           
-          # Remove local .buildozer directory (but keep .buildozer git repo if any)
-          if [ -d ".buildozer" ]; then
-            echo "[*] Removing local .buildozer directory..."
-            rm -rf .buildozer
-            echo "    ✓ Done"
-          fi
+          rm -rf .buildozer/android/platform/build-* || true
+          rm -rf .buildozer/android/platform/build-*/other_builds/pyjnius || true
+          rm -rf bin || true
           
-          # Optional: clean buildozer user home cache (more aggressive, use with care)
-          # Uncomment if you want to force total rebuild
-          # if [ -d "$HOME/.buildozer" ]; then
-          #   echo "[*] WARNING: This would remove ~/.buildozer (disabled for safety)"
-          #   echo "    To enable aggressive cache cleaning, uncomment the rm command"
-          # fi
-          
-          echo ""
-          echo "✅ Cache cleaned. Buildozer will perform fresh build"
+          echo "✅ Selective cache cleaned. Ready for build."
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
@@ -277,8 +259,9 @@ jobs:
       
       - name: Accept Android SDK licenses
         run: |
-          mkdir -p ~/.buildozer/android/platform
-          yes | sdkmanager --licenses || true
+          set -euo pipefail
+          command -v sdkmanager >/dev/null || { echo "sdkmanager not found"; exit 1; }
+          yes | sdkmanager --licenses
       
       - name: Configure Gradle/JVM for CI
         run: |
@@ -375,92 +358,82 @@ jobs:
       
       - name: Build Android APK
         id: build_apk
+        shell: bash
         run: |
+          set -euo pipefail
           echo "Starting build with resource monitoring..."
           echo ""
-          
-          # Define BUILD_LOG for later inspection
-          BUILD_LOG=".buildozer_build_$(date +%s).log"
-          
-          # Start background resource monitor
+
+          BUILD_LOG="buildozer_build_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.log"
+
           {
             while sleep 10; do
-              TIMESTAMP=$(date '+%H:%M:%S')
-              MEM_USAGE=$(free -h | grep Mem | awk '{print $3 " / " $2}')
-              CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | xargs)
-              BUILD_PROC=$(ps aux | grep '[b]uildozer' | awk '{print "PID:" $2 " CPU:" $3"%" " MEM:" $4"%"}')
-              echo "[$TIMESTAMP] Mem: $MEM_USAGE | Load: $CPU_LOAD | Buildozer: ${BUILD_PROC:-not found}"
+              TS=$(date '+%H:%M:%S')
+              MEM=$(free -h | awk '/Mem:/ {print $3 " / " $2}')
+              LOAD=$(uptime | awk -F'load average:' '{print $2}' | xargs)
+              PROC=$(ps aux | grep '[b]uildozer' | awk '{print "PID:" $2 " CPU:" $3"%" " MEM:" $4"%"}' | head -n1)
+              echo "[$TS] Mem: $MEM | Load: $LOAD | Buildozer: ${PROC:-not found}"
             done
           } &
           MONITOR_PID=$!
-          trap "kill $MONITOR_PID 2>/dev/null" EXIT
-          
-          # Run build and capture output to both stdout and log file
+          cleanup() { kill "$MONITOR_PID" 2>/dev/null || true; }
+          trap cleanup EXIT
+
           buildozer -v android debug 2>&1 | tee "$BUILD_LOG"
           BUILD_STATUS=${PIPESTATUS[0]}
-          
-          # Explicitly save BUILD_LOG path in step output for later steps
-          echo "build_log=$BUILD_LOG" >> $GITHUB_OUTPUT
-          
-          # Stop monitor
-          kill $MONITOR_PID 2>/dev/null || true
-          
-          exit $BUILD_STATUS
-      
+
+          echo "build_log=$BUILD_LOG" >> "$GITHUB_OUTPUT"
+
+          exit "$BUILD_STATUS"
+
       - name: Verify p4a did NOT use --ignore-setup-py
-        if: steps.build_apk.outcome == 'success'
+        if: always()
+        shell: bash
         run: |
+          set -euo pipefail
           echo "════════════════════════════════════════════════════════════════"
-          echo "POST-BUILD VERIFICATION: p4a flags check"
+          echo "VERIFICATION: p4a flags check (using step log only)"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
-          
-          # Extract most recent buildozer log (from ~/.buildozer/logs/)
-          BUILDOZER_LOG=$(find ~/.buildozer -name "buildozer*.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-          
-          if [ -z "$BUILDOZER_LOG" ]; then
-            echo "⚠️  No buildozer log found in ~/.buildozer/logs/"
-            echo "    Attempting to use build log from step..."
-            if [ -f "${{ steps.build_apk.outputs.build_log }}" ]; then
-              BUILDOZER_LOG="${{ steps.build_apk.outputs.build_log }}"
-              echo "✓ Found: $BUILDOZER_LOG"
-            else
-              echo "❌ FAILED: Cannot locate buildozer log for verification"
-              exit 1
-            fi
-          fi
-          
-          echo "Build log: $BUILDOZER_LOG"
-          echo ""
-          
-          # Check that p4a was called with --use-setup-py (NOT --ignore-setup-py)
-          echo "[Checking p4a toolchain invocation...]" 
-          
-          # MUST find --use-setup-py
-          if grep -q -- "--use-setup-py" "$BUILDOZER_LOG" 2>/dev/null; then
-            echo "✓ Found: --use-setup-py (CORRECT)"
-          else
-            echo "⚠️  --use-setup-py not explicitly visible in log"
-            echo "    This may be OK if buildozer internally applies it"
-          fi
-          
-          # MUST NOT find --ignore-setup-py
-          if grep -q -- "--ignore-setup-py" "$BUILDOZER_LOG" 2>/dev/null; then
-            echo "❌ CRITICAL ERROR: Found --ignore-setup-py in build log!"
-            echo "    This will cause ModuleNotFoundError: No module named '_ctypes'"
-            echo ""
-            echo "    Matching lines:"
-            grep -- "--ignore-setup-py" "$BUILDOZER_LOG" | head -5
-            echo ""
+
+          BUILD_LOG="${{ steps.build_apk.outputs.build_log }}"
+
+          if [ -z "${BUILD_LOG}" ]; then
+            echo "❌ FAILED: build_log output is empty"
             exit 1
-          else
-            echo "✓ NOT found: --ignore-setup-py (CORRECT)"
           fi
-          
-          echo ""
-          echo "✅ p4a flag verification PASSED"
-          echo "════════════════════════════════════════════════════════════════"
-          echo ""
+
+          if [ ! -f "$BUILD_LOG" ]; then
+            echo "❌ FAILED: Build log not found at: $BUILD_LOG"
+            ls -lah || true
+            exit 1
+          fi
+
+          if grep -q -- "--ignore-setup-py" "$BUILD_LOG"; then
+            echo "❌ FAIL: Found --ignore-setup-py in build log!"
+            grep -- "--ignore-setup-py" "$BUILD_LOG" | head -20
+            exit 1
+          fi
+
+          if ! grep -q -- "--use-setup-py" "$BUILD_LOG"; then
+            echo "❌ FAIL: Missing --use-setup-py in build log!"
+            grep -nE "pythonforandroid\.toolchain|p4a|toolchain.*apk" "$BUILD_LOG" | tail -60 || true
+            exit 1
+          fi
+
+          echo "✅ PASS: --use-setup-py found and --ignore-setup-py not found"
+      
+      - name: Verify no armeabi-v7a compilation
+        if: always()
+        run: |
+          set -euo pipefail
+          LOG="${{ steps.build_apk.outputs.build_log }}"
+          if [ -f "$LOG" ] && grep -q "armeabi-v7a" "$LOG"; then
+            echo "❌ armeabi-v7a detected in build log (should be arm64-v8a only)"
+            grep "armeabi-v7a" "$LOG" | head -20
+            exit 1
+          fi
+          echo "✅ arm64-v8a only confirmed"
       
       - name: Capture buildozer logs on failure
         if: steps.build_apk.outcome == 'failure'
@@ -559,6 +532,35 @@ jobs:
         run: |
           echo "Contents of bin/ directory:"
           ls -lah bin/ || echo "bin/ directory not found"
+      
+      - name: Smoke test pyjnius (hard evidence)
+        if: success()
+        run: |
+          set -euo pipefail
+
+          APK="$(find bin -maxdepth 1 -type f -name '*.apk' 2>/dev/null | head -n1 || true)"
+          if [ -z "$APK" ]; then
+            APK="$(find .buildozer -type f -path '*/outputs/apk/*/*.apk' -o -path '*/dists/*/build/outputs/apk/*/*.apk' 2>/dev/null | head -n1 || true)"
+          fi
+
+          if [ -z "$APK" ]; then
+            echo "❌ No APK found"
+            exit 1
+          fi
+
+          if unzip -l "$APK" | grep -iE "jnius.*\.so" >/dev/null; then
+            echo "✅ jnius .so found inside APK"
+            exit 0
+          fi
+
+          BUILD_DIR="$(ls -d .buildozer/android/platform/build-* 2>/dev/null | head -n1 || true)"
+          if [ -n "$BUILD_DIR" ] && find "$BUILD_DIR" -type f \( -path "*/site-packages/jnius/*.so" -o -path "*/other_builds/pyjnius/*/build/lib*/jnius/*.so" \) | grep -q .; then
+            echo "✅ jnius .so found in build tree"
+            exit 0
+          fi
+
+          echo "❌ jnius .so not found"
+          exit 1
       
       - name: Verify APK exists
         id: verify
