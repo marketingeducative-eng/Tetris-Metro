@@ -133,6 +133,22 @@ jobs:
         run: |
           mkdir -p ~/.buildozer/android/platform
           yes | sdkmanager --licenses || true
+          
+          # Ensure the NDK is available at the path expected by p4a/ci_pyjnius_smoke.sh.
+          # ANDROID_NDK_HOME/ROOT were overridden in the previous step to point at the
+          # buildozer-managed path, which doesn't yet exist on a cache miss.
+          # ANDROID_NDK_LATEST_HOME is a runner-default variable (not overridden) that
+          # points to the pre-installed NDK on GitHub-hosted ubuntu runners.
+          NDK_DEST="$HOME/.buildozer/android/platform/android-ndk-r25b"
+          if [ ! -d "$NDK_DEST" ]; then
+            RUNNER_NDK="${ANDROID_NDK_LATEST_HOME:-}"
+            if [ -d "$RUNNER_NDK" ]; then
+              ln -sf "$RUNNER_NDK" "$NDK_DEST"
+              echo "✓ NDK linked: $RUNNER_NDK → $NDK_DEST"
+            else
+              echo "WARNING: ANDROID_NDK_LATEST_HOME ('$RUNNER_NDK') not found; cross-compilation may fail"
+            fi
+          fi
       
       - name: Make smoke test script executable
         run: chmod +x scripts/ci_pyjnius_smoke.sh
