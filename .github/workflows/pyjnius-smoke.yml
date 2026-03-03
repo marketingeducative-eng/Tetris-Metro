@@ -117,6 +117,11 @@ jobs:
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --version
+          
+          # Create symlink for buildozer compatibility (expects tools/bin/sdkmanager)
+          mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
+          ln -sf "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
+          echo "✓ Created tools/bin symlink for buildozer compatibility"
       
       - name: Accept Android SDK licenses + install required packages
         shell: bash
