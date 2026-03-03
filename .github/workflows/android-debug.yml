@@ -277,7 +277,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses
+          # sdkmanager --licenses returns exit code 1 even when successful
+          # Suppress output and ignore exit code
+          (yes || true) | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager \
             "platform-tools" \
             "platforms;android-31" \
