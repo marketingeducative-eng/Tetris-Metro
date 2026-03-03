@@ -164,7 +164,7 @@ jobs:
           echo "[1. Downloading NDK r25b from Google repository...]"
           NDK_ZIP="android-ndk-r25b-linux.zip"
           curl -fsSL --continue-at - -o "$NDK_ZIP" \
-            https://dl.google.com/android/repository/android-ndk-r25b-linux-x86_64.zip
+            https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
           
           echo "✓ Download complete"
           echo ""
