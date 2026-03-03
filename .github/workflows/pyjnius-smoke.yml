@@ -128,6 +128,68 @@ jobs:
             "platforms;android-31" \
             "build-tools;31.0.0"
       
+      - name: Download and install Android NDK r25b
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "════════════════════════════════════════════════════════════════"
+          echo "DOWNLOADING ANDROID NDK r25b (Smoke Test Prerequisite)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          NDK_PLATFORM_DIR="$HOME/.buildozer/android/platform"
+          NDK_DIR="$NDK_PLATFORM_DIR/android-ndk-r25b"
+          
+          # Check if already cached
+          if [ -d "$NDK_DIR" ]; then
+            CLANG="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+            if [ -x "$CLANG" ]; then
+              echo "✓ NDK r25b already cached and valid: $NDK_DIR"
+              echo "════════════════════════════════════════════════════════════════"
+              echo ""
+              exit 0
+            else
+              echo "⚠ Cached NDK corrupted (clang not executable)"
+              echo "  Removing corrupted cache: $NDK_DIR"
+              rm -rf "$NDK_DIR"
+            fi
+          fi
+          
+          # Download NDK r25b
+          mkdir -p "$NDK_PLATFORM_DIR"
+          cd "$NDK_PLATFORM_DIR"
+          
+          echo "[1. Downloading NDK r25b from Google repository...]"
+          NDK_ZIP="android-ndk-r25b-linux.zip"
+          curl -fsSL --continue-at - -o "$NDK_ZIP" \
+            https://dl.google.com/android/repository/android-ndk-r25b-linux-x86_64.zip
+          
+          echo "✓ Download complete"
+          echo ""
+          
+          echo "[2. Extracting NDK archive...]"
+          unzip -q "$NDK_ZIP"
+          rm "$NDK_ZIP"
+          echo "✓ Extraction complete"
+          echo ""
+          
+          # Verify extraction
+          CLANG="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          if [ ! -x "$CLANG" ]; then
+            echo "❌ CRITICAL: NDK extraction failed - clang not found at:"
+            echo "   $CLANG"
+            exit 1
+          fi
+          
+          echo "[3. Verifying NDK toolchain...]"
+          echo "✓ clang executable found: $CLANG"
+          "$CLANG" --version | head -1
+          echo ""
+          
+          echo "✅ NDK r25b ready for p4a toolchain"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
       - name: Make smoke test script executable
         run: chmod +x scripts/ci_pyjnius_smoke.sh
       
