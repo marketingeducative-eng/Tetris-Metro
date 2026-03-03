@@ -77,7 +77,10 @@ android.use_ndk_build = 0
 
 # CRITICAL FIX: Enable pyjnius setup.py execution to generate config.pxi
 # Required for Cython compilation of pyjnius 1.4+
-# Modern Buildozer token: true => --use-setup-py, false => --ignore-setup-py
+# This PREVENTS ModuleNotFoundError: No module named '_ctypes' during setuptools install
+# Valid in buildozer >= 1.4.0
+# true = --use-setup-py (setuptools installs from setup.py, generates config.pxi)
+# false = --ignore-setup-py (causes p4a to compile setuptools, fails with _ctypes error)
 p4a.setup_py = true
 
 [buildozer]
