@@ -82,6 +82,7 @@ android.use_ndk_build = 0
 # true = --use-setup-py (setuptools installs from setup.py, generates config.pxi)
 # false = --ignore-setup-py (causes p4a to compile setuptools, fails with _ctypes error)
 p4a.setup_py = true
+p4a_ignore_setuppy = 0
 
 [buildozer]
 

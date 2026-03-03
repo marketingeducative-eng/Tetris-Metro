@@ -58,50 +58,24 @@ jobs:
             ${{ runner.os }}-pyjnius-smoke-arm64-
       
       - name: Install pinned Python dependencies
+        shell: bash
         run: |
-          echo "════════════════════════════════════════════════════════════════"
-          echo "Installing Python dependencies with PINNED versions"
-          echo "════════════════════════════════════════════════════════════════"
-          pip install --upgrade pip setuptools wheel
-          pip install --no-cache-dir 'buildozer>=1.4.0'
-          pip install --no-cache-dir 'Cython==0.29.36'
-          pip install --no-cache-dir python-for-android
-          echo ""
-          echo "✓ Dependencies installed"
+          set -euo pipefail
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --no-cache-dir 'buildozer>=1.4.0'
+          python -m pip install --no-cache-dir python-for-android
+          # Force pin LAST so nothing upgrades it afterward
+          python -m pip install --no-cache-dir --force-reinstall 'Cython==0.29.36'
+          python -m pip show Cython
       
       - name: Verify pinned versions (STRICT - no tolerance)
+        shell: bash
         run: |
-          echo "════════════════════════════════════════════════════════════════"
-          echo "STRICT DEPENDENCY VERIFICATION (Determinism Check)"
-          echo "════════════════════════════════════════════════════════════════"
-          echo ""
-          echo "[Environment]"
+          set -euo pipefail
           python -V
-          echo ""
-          echo "[All Installed Versions]"
-          pip freeze | grep -E "^Cython==|^pyjnius==|^python-for-android==|^buildozer==" || echo "(pyjnius not installed by pip - will be by p4a)"
-          echo ""
-          echo "[Critical Check: Cython Version]"
-          CYTHON_VERSION=$(python3 -c "import Cython; print(Cython.__version__)" 2>/dev/null || echo "NOT_FOUND")
-          echo "Detected: $CYTHON_VERSION"
-          echo "Required: 0.29.36"
-          echo ""
-          
-          # STRICT assertion - fail if not exact match
-          python -c "import Cython; assert Cython.__version__ == '0.29.36', f'Cython version mismatch: {Cython.__version__} != 0.29.36'" || {
-            echo ""
-            echo "❌ CRITICAL: Cython version mismatch!"
-            echo ""
-            echo "This WILL cause: jnius/jnius_utils.pxi:323:37: undeclared name not builtin: long"
-            echo ""
-            echo "Expected: 0.29.36 (Python 3 compatible, supports 'long' type)"
-            echo "Found:    $CYTHON_VERSION"
-            exit 1
-          }
-          
-          echo "✅ Cython 0.29.36 verified (exact match)"
-          echo "════════════════════════════════════════════════════════════════"
-          echo ""
+          python -m pip freeze | grep -E "^Cython==|^pyjnius==|^python-for-android==|^buildozer==" || true
+          python -c "import Cython; print(Cython.__version__)"
+          python -c "import Cython; assert Cython.__version__ == '0.29.36', f'Cython version mismatch: {Cython.__version__} != 0.29.36'"
       
       - name: Sanitize NDK/SDK environment
         run: |
@@ -129,10 +103,94 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
-      - name: Configure Android SDK/NDK paths
+      - name: Install Android SDK cmdline-tools (sdkmanager)
+        shell: bash
         run: |
-          mkdir -p ~/.buildozer/android/platform
-          yes | sdkmanager --licenses || true
+          set -euo pipefail
+          : "${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT not set}"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd /tmp
+          curl -fsSL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip
+          rm -rf "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --version
+      
+      - name: Accept Android SDK licenses + install required packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          # sdkmanager --licenses returns exit code 1 even when successful
+          # Suppress output and ignore exit code
+          (yes || true) | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;31.0.0"
+      
+      - name: Download and install Android NDK r25b
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "════════════════════════════════════════════════════════════════"
+          echo "DOWNLOADING ANDROID NDK r25b (Smoke Test Prerequisite)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          NDK_PLATFORM_DIR="$HOME/.buildozer/android/platform"
+          NDK_DIR="$NDK_PLATFORM_DIR/android-ndk-r25b"
+          
+          # Check if already cached
+          if [ -d "$NDK_DIR" ]; then
+            CLANG="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+            if [ -x "$CLANG" ]; then
+              echo "✓ NDK r25b already cached and valid: $NDK_DIR"
+              echo "════════════════════════════════════════════════════════════════"
+              echo ""
+              exit 0
+            else
+              echo "⚠ Cached NDK corrupted (clang not executable)"
+              echo "  Removing corrupted cache: $NDK_DIR"
+              rm -rf "$NDK_DIR"
+            fi
+          fi
+          
+          # Download NDK r25b
+          mkdir -p "$NDK_PLATFORM_DIR"
+          cd "$NDK_PLATFORM_DIR"
+          
+          echo "[1. Downloading NDK r25b from Google repository...]"
+          NDK_ZIP="android-ndk-r25b-linux.zip"
+          curl -fsSL --continue-at - -o "$NDK_ZIP" \
+            https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          
+          echo "✓ Download complete"
+          echo ""
+          
+          echo "[2. Extracting NDK archive...]"
+          unzip -q "$NDK_ZIP"
+          rm "$NDK_ZIP"
+          echo "✓ Extraction complete"
+          echo ""
+          
+          # Verify extraction
+          CLANG="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          if [ ! -x "$CLANG" ]; then
+            echo "❌ CRITICAL: NDK extraction failed - clang not found at:"
+            echo "   $CLANG"
+            exit 1
+          fi
+          
+          echo "[3. Verifying NDK toolchain...]"
+          echo "✓ clang executable found: $CLANG"
+          "$CLANG" --version | head -1
+          echo ""
+          
+          echo "✅ NDK r25b ready for p4a toolchain"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
       
       - name: Make smoke test script executable
         run: chmod +x scripts/ci_pyjnius_smoke.sh
@@ -177,64 +235,18 @@ jobs:
       
       - name: Evaluate smoke test result
         if: always()
+        shell: bash
         run: |
-          EXIT_CODE=${{ steps.smoke_test.outputs.test_exit_code }}
-          
-          echo ""
-          echo "════════════════════════════════════════════════════════════════"
-          echo "SMOKE TEST RESULT EVALUATION"
-          echo "════════════════════════════════════════════════════════════════"
-          echo ""
+          set -euo pipefail
+          EXIT_CODE="${{ steps.smoke_test.outputs.test_exit_code }}"
+          if [ -z "$EXIT_CODE" ]; then
+            EXIT_CODE="${TEST_EXIT:-1}"
+          fi
           echo "Exit code: $EXIT_CODE"
-          echo ""
-          
           case "$EXIT_CODE" in
-            0)
-              echo "✅ PASSED: pyjnius compiled successfully"
-              echo ""
-              echo "The fix (Cython 0.29.36 + pyjnius 1.6.1) is working correctly."
-              echo "Historical bug NOT present."
-              exit 0
-              ;;
-            1)
-              echo "❌ FAILED: Historical bug detected"
-              echo ""
-              echo "One of these errors was found:"
-              echo "  • undeclared name not builtin: long (Cython 3.x incompatibility)"
-              echo "  • jnius.c missing (cascade error from Cython failure)"
-              echo ""
-              echo "Check the uploaded logs for details."
-              exit 1
-              ;;
-            2)
-              echo "⚠️  INCONCLUSIVE: No errors but no positive evidence"
-              echo ""
-              echo "The build ran without historical bugs, but we couldn't"
-              echo "confirm that pyjnius actually compiled."
-              echo ""
-              echo "Positive evidence patterns searched for:"
-              echo "  LOG patterns:"
-              echo "    • 'Cythonize jnius/jnius.pyx'"
-              echo "    • 'building <jnius> extension'"
-              echo "    • 'recipe pyjnius' + compile markers"
-              echo "    • 'pyjnius.*build|compile' combined indicators"
-              echo ""
-              echo "  ARTIFACTS (in .buildozer or build/):"
-              echo "    • *jnius*.o (object files)"
-              echo "    • *jnius*.c (generated C source)"
-              echo "    • *jnius*.so (shared object libraries)"
-              echo "    • libpyjnius*.so (named variants)"
-              echo ""
-              echo "Treating as FAILURE for CI safety (requires positive evidence)."
-              echo "::warning::Smoke test inconclusive - check logs for evidence patterns"
-              exit 1
-              ;;
-            *)
-              echo "❌ UNEXPECTED: Unknown exit code"
-              echo ""
-              echo "Check the uploaded logs for details."
-              exit 1
-              ;;
+            0) exit 0 ;;
+            1|2) exit 1 ;;
+            *) exit 1 ;;
           esac
       
       - name: Smoke test summary
