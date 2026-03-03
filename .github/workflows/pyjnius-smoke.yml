@@ -63,7 +63,7 @@ jobs:
           echo "Installing Python dependencies with PINNED versions"
           echo "════════════════════════════════════════════════════════════════"
           pip install --upgrade pip setuptools wheel
-          pip install --no-cache-dir buildozer
+          pip install --no-cache-dir 'buildozer>=1.4.0'
           pip install --no-cache-dir 'Cython==0.29.36'
           pip install --no-cache-dir python-for-android
           echo ""
@@ -100,6 +100,32 @@ jobs:
           }
           
           echo "✅ Cython 0.29.36 verified (exact match)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
+      - name: Sanitize NDK/SDK environment
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "SANITIZING NDK/SDK ENVIRONMENT (Removing runner pollution)"
+          echo "════════════════════════════════════════════════════════════════"
+          
+          # Unset runner-supplied variables
+          unset ANDROID_NDK ANDROID_NDK_LATEST_HOME ANDROID_HOME || true
+          
+          # Set buildozer-controlled paths
+          export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export ANDROIDNDK="$HOME/.buildozer/android/platform/android-ndk-r25b"
+          export ANDROID_NDK_HOME="$ANDROIDNDK"
+          export ANDROID_NDK_ROOT="$ANDROIDNDK"
+          
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROIDNDK=$ANDROIDNDK" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
+          
+          echo "✓ Environment sanitized"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       

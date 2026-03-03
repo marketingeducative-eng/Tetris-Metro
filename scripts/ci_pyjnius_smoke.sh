@@ -74,10 +74,11 @@ echo ""
 
 # Export Android environment variables
 export ANDROID_SDK_ROOT="${HOME}/.buildozer/android/platform/android-sdk"
-export ANDROID_NDK_ROOT="${HOME}/.buildozer/android/platform/android-ndk"
+export ANDROID_NDK_ROOT="${HOME}/.buildozer/android/platform/android-ndk-r25b"
 export ANDROIDSDK="${ANDROID_SDK_ROOT}"
 export ANDROIDNDK="${ANDROID_NDK_ROOT}"
-export ANDROIDAPI="21"
+export ANDROIDAPI="31"
+export ANDROIDNDK_API="21"
 export ANDROIDNDKVER="r25b"
 
 echo "[Phase 1/3] Creating p4a distribution with pyjnius recipe ($ARCH)..."
@@ -95,9 +96,9 @@ echo ""
         --requirements "python3,kivy,Cython==0.29.36,pyjnius==1.6.1" \
         --arch "$ARCH" \
         --ndk-api "$NDK_API" \
-        --sdk-dir "${ANDROID_SDK_ROOT}" \
-        --ndk-dir "${ANDROID_NDK_ROOT}" \
         --storage-dir "${HOME}/.buildozer/android/platform/build-${ARCH}" \
+        --use-setup-py \
+        --debug \
         2>&1 | tee -a "$LOG_FILE"
     
     BUILD_EXIT=${PIPESTATUS[0]}
