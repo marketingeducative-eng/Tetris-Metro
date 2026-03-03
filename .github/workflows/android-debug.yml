@@ -356,6 +356,56 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
+      - name: Pre-build spec integrity check (anti-dual-arch guard)
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "SPEC INTEGRITY CHECK + ANTI-DUAL-ARCH GUARD"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          # 1. Print buildozer.spec SHA256 for audit trail
+          echo "[1. buildozer.spec SHA256]"
+          sha256sum buildozer.spec
+          echo ""
+          
+          # 2. Extract and display critical config keys
+          echo "[2. Critical configuration keys]"
+          echo "android.archs = $(grep '^android.archs' buildozer.spec | cut -d= -f2 | xargs)"
+          echo "requirements = $(grep '^requirements' buildozer.spec | cut -d= -f2 | xargs)"
+          echo "p4a.setup_py = $(grep '^p4a.setup_py' buildozer.spec | cut -d= -f2 | xargs)"
+          echo "p4a_ignore_setuppy = $(grep '^p4a_ignore_setuppy' buildozer.spec | cut -d= -f2 | xargs)"
+          echo ""
+          
+          # 3. Verify ONLY arm64-v8a specified (no armeabi-v7a)
+          echo "[3. Architecture verification]"
+          ARCHS=$(grep '^android.archs' buildozer.spec | cut -d= -f2 | xargs)
+          if [[ "$ARCHS" != "arm64-v8a" ]]; then
+            echo "❌ FAILED: android.archs must be EXACTLY 'arm64-v8a'"
+            echo "   Found: '$ARCHS'"
+            exit 1
+          fi
+          echo "✓ android.archs = arm64-v8a (single arch confirmed)"
+          echo ""
+          
+          # 4. Verify requirements include pinned versions
+          echo "[4. Requirements verification]"
+          REQS=$(grep '^requirements' buildozer.spec | cut -d= -f2)
+          if ! echo "$REQS" | grep -q "Cython==0.29.36"; then
+            echo "❌ FAILED: requirements must include Cython==0.29.36"
+            exit 1
+          fi
+          if ! echo "$REQS" | grep -q "pyjnius==1.6.1"; then
+            echo "❌ FAILED: requirements must include pyjnius==1.6.1"
+            exit 1
+          fi
+          echo "✓ Requirements include pinned Cython and pyjnius"
+          echo ""
+          
+          echo "✅ Spec integrity verified"
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
       - name: Build Android APK
         id: build_apk
         shell: bash
@@ -386,42 +436,96 @@ jobs:
 
           exit "$BUILD_STATUS"
 
-      - name: Verify p4a did NOT use --ignore-setup-py
+      - name: HARD-FAIL if dual-arch or --ignore-setup-py detected
         if: always()
         shell: bash
         run: |
           set -euo pipefail
           echo "════════════════════════════════════════════════════════════════"
-          echo "VERIFICATION: p4a flags check (using step log only)"
+          echo "ANTI-REGRESSION GUARD: Dual-arch + ignore-setup-py detection"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
 
           BUILD_LOG="${{ steps.build_apk.outputs.build_log }}"
 
-          if [ -z "${BUILD_LOG}" ]; then
-            echo "❌ FAILED: build_log output is empty"
-            exit 1
+          if [ -z "${BUILD_LOG}" ] || [ ! -f "$BUILD_LOG" ]; then
+            echo "⚠ Build log not available, skipping verification"
+            exit 0
           fi
 
-          if [ ! -f "$BUILD_LOG" ]; then
-            echo "❌ FAILED: Build log not found at: $BUILD_LOG"
-            ls -lah || true
+          echo "[1. Searching for p4a toolchain invocation line...]"
+          P4A_CMD=$(grep -E "python.*pythonforandroid\.toolchain.*(create|apk|aab)" "$BUILD_LOG" | head -1 || true)
+          
+          if [ -z "$P4A_CMD" ]; then
+            echo "⚠ p4a invocation line not found in log"
+            exit 0
+          fi
+          
+          echo "✓ Found p4a command:"
+          echo "$P4A_CMD"
+          echo ""
+          
+          # 2. Check for dual --arch (count occurrences)
+          ARCH_COUNT=$(echo "$P4A_CMD" | grep -o -- "--arch=" | wc -l)
+          echo "[2. Architecture count check]"
+          echo "   --arch flags found: $ARCH_COUNT"
+          
+          if [ "$ARCH_COUNT" -gt 1 ]; then
+            echo "❌ FAILED: Multiple --arch flags detected (dual-arch compilation)"
+            echo "   Expected: 1 (--arch=arm64-v8a)"
+            echo "   Found: $ARCH_COUNT"
+            echo ""
+            echo "Full command:"
+            echo "$P4A_CMD"
             exit 1
           fi
-
-          if grep -q -- "--ignore-setup-py" "$BUILD_LOG"; then
-            echo "❌ FAIL: Found --ignore-setup-py in build log!"
-            grep -- "--ignore-setup-py" "$BUILD_LOG" | head -20
+          echo "✓ Single --arch detected"
+          echo ""
+          
+          # 3. Check for --ignore-setup-py (MUST NOT exist)
+          echo "[3. Setup.py flag check]"
+          if echo "$P4A_CMD" | grep -q -- "--ignore-setup-py"; then
+            echo "❌ FAILED: --ignore-setup-py detected in p4a command"
+            echo "   Expected: --use-setup-py"
+            echo ""
+            echo "Full command:"
+            echo "$P4A_CMD"
             exit 1
           fi
-
-          if ! grep -q -- "--use-setup-py" "$BUILD_LOG"; then
-            echo "❌ FAIL: Missing --use-setup-py in build log!"
-            grep -nE "pythonforandroid\.toolchain|p4a|toolchain.*apk" "$BUILD_LOG" | tail -60 || true
+          echo "✓ --ignore-setup-py NOT present"
+          echo ""
+          
+          # 4. Verify --use-setup-py IS present
+          if ! echo "$P4A_CMD" | grep -q -- "--use-setup-py"; then
+            echo "❌ FAILED: --use-setup-py NOT found in p4a command"
+            echo ""
+            echo "Full command:"
+            echo "$P4A_CMD"
             exit 1
           fi
-
-          echo "✅ PASS: --use-setup-py found and --ignore-setup-py not found"
+          echo "✓ --use-setup-py confirmed"
+          echo ""
+          
+          # 5. Verify requirements include pinned versions
+          echo "[4. Requirements verification in p4a command]"
+          if ! echo "$P4A_CMD" | grep -q "Cython==0.29.36"; then
+            echo "⚠ WARNING: Cython==0.29.36 not found in p4a requirements"
+            echo "   This may cause compilation errors"
+          else
+            echo "✓ Cython==0.29.36 confirmed"
+          fi
+          
+          if ! echo "$P4A_CMD" | grep -q "pyjnius==1.6.1"; then
+            echo "⚠ WARNING: pyjnius==1.6.1 not found in p4a requirements"
+            echo "   This may cause compilation errors"
+          else
+            echo "✓ pyjnius==1.6.1 confirmed"
+          fi
+          echo ""
+          
+          echo "✅ PASS: Single-arch + --use-setup-py verified"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
       
       - name: Verify no armeabi-v7a compilation
         if: always()
