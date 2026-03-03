@@ -355,13 +355,7 @@ jobs:
             echo "   Current: $ANDROID_NDK_HOME"
             exit 1
           fi
-          
-          if ! test -d "$ANDROID_NDK_HOME"; then
-            echo "❌ FAILED: ANDROID_NDK_HOME directory does not exist"
-            echo "   Path: $ANDROID_NDK_HOME"
-            exit 1
-          fi
-          echo "  ✓ NDK path exists and correct"
+          echo "  ✓ NDK path configured correctly (will be installed by download step)"
           echo ""
           
           # 3. Check p4a.setup_py config
