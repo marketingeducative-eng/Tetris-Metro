@@ -134,6 +134,13 @@ jobs:
             "platform-tools" \
             "platforms;android-31" \
             "build-tools;31.0.0"
+
+      - name: Enforce Cython language level (Py3)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CYTHON_LANGUAGE_LEVEL=3" >> "$GITHUB_ENV"
+          echo "✓ CYTHON_LANGUAGE_LEVEL=3 configured for all subsequent steps"
       
       - name: Download and install Android NDK r25b
         shell: bash
@@ -204,6 +211,7 @@ jobs:
         id: smoke_test
         continue-on-error: true
         run: |
+          export CYTHON_LANGUAGE_LEVEL="${CYTHON_LANGUAGE_LEVEL:-3}"
           echo "════════════════════════════════════════════════════════════════"
           echo "SMOKE TEST: pyjnius Compilation Validation"
           echo "════════════════════════════════════════════════════════════════"

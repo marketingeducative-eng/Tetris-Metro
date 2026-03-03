@@ -494,6 +494,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export CYTHON_LANGUAGE_LEVEL="${CYTHON_LANGUAGE_LEVEL:-3}"
           echo "Starting build with resource monitoring..."
           echo ""
 
