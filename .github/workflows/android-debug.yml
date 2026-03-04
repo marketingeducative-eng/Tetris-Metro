@@ -15,6 +15,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: CRITICAL - Purge runner ANDROID_NDK immediately (before any setup)
+        run: |
+          echo "════════════════════════════════════════════════════════════════"
+          echo "STEP 0: Emergency ANDROID_NDK purge (runner pollution)"
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[BEFORE] Runner environment variables:"
+          env | grep -E '^ANDROID_|^JAVA_' || echo "  (none found)"
+          echo ""
+          
+          # CRITICAL: Clear all runner-provided NDK/SDK/Java paths BEFORE any step uses them
+          echo "ANDROID_NDK=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_LATEST_HOME=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=" >> $GITHUB_ENV
+          echo "ANDROID_HOME=" >> $GITHUB_ENV
+          
+          # Verify the unset worked (for THIS shell)
+          unset ANDROID_NDK
+          unset ANDROID_NDK_LATEST_HOME
+          unset ANDROID_NDK_ROOT
+          unset ANDROID_SDK_ROOT
+          unset ANDROID_HOME
+          
+          echo "[AFTER] Cleared:" 
+          echo "  ANDROID_NDK= (empty)"
+          echo "  ANDROID_NDK_LATEST_HOME= (empty)"
+          echo "  ANDROID_NDK_ROOT= (empty)"
+          echo "  ANDROID_SDK_ROOT= (empty)"
+          echo "  ANDROID_HOME= (empty)"
+          echo ""
+          echo "✅ Runner pollution purged. Next steps will use buildozer-managed paths only."
+          echo "════════════════════════════════════════════════════════════════"
+          echo ""
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -76,67 +111,51 @@ jobs:
           echo "Buildozer version:"
           buildozer --version
       
-      - name: Sanitize NDK/SDK environment for buildozer
+      - name: Sanitize NDK/SDK environment for buildozer (Step 2)
         run: |
           echo "════════════════════════════════════════════════════════════════"
-          echo "SANITIZING NDK/SDK ENVIRONMENT (Removing runner pollution)"
+          echo "SANITIZING NDK/SDK ENVIRONMENT (Confirm runner vars cleared)"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
-          echo "[BEFORE SANITIZATION - Runner variables that pollute p4a:]"
-          echo "  ANDROID_NDK=${ANDROID_NDK:-UNSET}"
-          echo "  ANDROID_NDK_LATEST_HOME=${ANDROID_NDK_LATEST_HOME:-UNSET}"
-          echo "  ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT:-UNSET}"
-          echo "  ANDROID_HOME=${ANDROID_HOME:-UNSET}"
-          echo "  ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-UNSET}"
+          echo "[Check: Runner variables SHOULD now be empty from Step 0]"
+          echo "  ANDROID_NDK=${ANDROID_NDK:-EMPTY}"
+          echo "  ANDROID_NDK_LATEST_HOME=${ANDROID_NDK_LATEST_HOME:-EMPTY}"
+          echo "  ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT:-EMPTY}"
+          echo "  ANDROID_HOME=${ANDROID_HOME:-EMPTY}"
+          echo "  ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-EMPTY}"
+          
+          # Verify Step 0 worked - if runner vars are still set, fail hard
+          if [ -n "${ANDROID_NDK:-}" ]; then
+            echo "❌ CRITICAL FAILURE: ANDROID_NDK still set to: $ANDROID_NDK"
+            echo "   Step 0 purge did not work. Aborting build."
+            exit 1
+          fi
+          echo "✓ Step 0 purge confirmed: ANDROID_NDK is empty"
           echo ""
           
-          # Unset ALL runner-supplied NDK/SDK variables (CRITICAL for p4a NDK r25b)
-          unset ANDROID_NDK
-          unset ANDROID_NDK_LATEST_HOME
-          unset ANDROID_NDK_ROOT
-          unset ANDROID_HOME
-          unset ANDROID_SDK_ROOT
+          # Set buildozer-specific paths (MUST persist via GITHUB_ENV for next steps)
+          ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+          ANDROID_SDK_ROOT="$ANDROID_HOME"
+          ANDROIDNDK="$HOME/.buildozer/android/platform/android-ndk-r25b"
+          ANDROID_NDK_HOME="$ANDROIDNDK"
+          ANDROID_NDK_ROOT="$ANDROIDNDK"
           
-          # Set buildozer-specific paths for consistency
-          export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
-          export ANDROID_SDK_ROOT="$ANDROID_HOME"
-          export ANDROIDNDK="$HOME/.buildozer/android/platform/android-ndk-r25b"
-          export ANDROID_NDK_HOME="$ANDROIDNDK"
-          export ANDROID_NDK_ROOT="$ANDROIDNDK"
-          
-          # Persist these for all subsequent steps
+          # Write to GITHUB_ENV so values persist across steps
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROIDNDK=$ANDROIDNDK" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
           
-          echo "[AFTER SANITIZATION - Buildozer-controlled paths:]"
+          echo "[CONFIGURED: Buildozer-controlled paths]"
           echo "  ANDROID_HOME=$ANDROID_HOME"
           echo "  ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           echo "  ANDROIDNDK=$ANDROIDNDK"
           echo "  ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
           echo "  ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
-          echo ""          
-          # Verify runner NDKs are NOT in environment anymore
-          if [ -n "${ANDROID_NDK:-}" ] || [ -n "${ANDROID_NDK_LATEST_HOME:-}" ]; then
-            echo "❌ CRITICAL: Runner NDK variables still set after sanitization"
-            echo "   ANDROID_NDK=${ANDROID_NDK:-UNSET}"
-            echo "   ANDROID_NDK_LATEST_HOME=${ANDROID_NDK_LATEST_HOME:-UNSET}"
-            exit 1
-          fi
-          echo "✓ Runner NDK pollution successfully removed"
-          
-          # Verify buildozer NDK path format is correct
-          if [[ "$ANDROID_NDK_HOME" != *"android-ndk-r25b" ]]; then
-            echo "❌ CRITICAL: ANDROID_NDK_HOME does not point to r25b"
-            echo "   Current: $ANDROID_NDK_HOME"
-            echo "   Expected: .../android-ndk-r25b"
-            exit 1
-          fi
-          echo "✓ NDK path verified: $ANDROID_NDK_HOME"
-          echo ""          echo "════════════════════════════════════════════════════════════════"
           echo ""
+          echo "✅ Buildozer NDK/SDK environment configured"
+          echo "════════════════════════════════════════════════════════════════"
       
       - name: Verify pinned dependencies (determinism check)
         run: |
@@ -454,16 +473,29 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo "DOWNLOADING ANDROID NDK r25b (APK Build Prerequisite)"
           echo "════════════════════════════════════════════════════════════════"
-          echo ""          
-          # CRITICAL: Verify no runner NDK pollution before download
-          if [ -n "${ANDROID_NDK:-}" ]; then
-            echo "❌ CRITICAL: ANDROID_NDK still set (points to runner NDK 27/29)"
+          echo ""
+          # CRITICAL: Block runner NDK pollution (allow only empty or r25b)
+          if [ -n "${ANDROID_NDK:-}" ] && [[ "${ANDROID_NDK}" != *"android-ndk-r25b" ]]; then
+            echo "❌ CRITICAL: ANDROID_NDK points to unsupported NDK"
             echo "   Value: $ANDROID_NDK"
-            echo "   This will break clang toolchain for ndk-api=21"
+            echo "   Expected: empty OR path ending in android-ndk-r25b"
             exit 1
           fi
-          echo "✓ Runner NDK variables confirmed absent"
-          echo ""          
+
+          if [ -n "${ANDROID_NDK_LATEST_HOME:-}" ] && [[ "${ANDROID_NDK_LATEST_HOME}" != *"android-ndk-r25b" ]]; then
+            echo "❌ CRITICAL: ANDROID_NDK_LATEST_HOME points to unsupported NDK"
+            echo "   Value: $ANDROID_NDK_LATEST_HOME"
+            echo "   Expected: empty OR path ending in android-ndk-r25b"
+            exit 1
+          fi
+
+          if [ -n "${ANDROID_NDK:-}" ]; then
+            echo "✓ ANDROID_NDK points to r25b: $ANDROID_NDK"
+          else
+            echo "✓ ANDROID_NDK is unset/empty (expected)"
+          fi
+          echo "✓ No conflicting runner NDK variables detected"
+          echo ""
           NDK_PLATFORM_DIR="$HOME/.buildozer/android/platform"
           NDK_DIR="$NDK_PLATFORM_DIR/android-ndk-r25b"
           
@@ -512,7 +544,7 @@ jobs:
           echo "✓ clang executable found: $CLANG"
           "$CLANG" --version | head -1
           echo ""
-                    # Verify NDK supports ndk-api=21 (platforms/android-21 must exist)
+          # Verify NDK supports ndk-api=21 (platforms/android-21 must exist)
           if [ ! -d "$NDK_DIR/platforms/android-21" ]; then
             echo "❌ CRITICAL: NDK r25b missing platforms/android-21"
             echo "   Required for ndk-api=21 in buildozer.spec"
@@ -521,7 +553,7 @@ jobs:
           fi
           echo "✓ NDK r25b supports ndk-api=21 (platforms/android-21 exists)"
           echo ""
-                    echo "✅ NDK r25b ready for buildozer"
+          echo "✅ NDK r25b ready for buildozer"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
