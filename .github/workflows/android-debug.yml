@@ -924,6 +924,15 @@ jobs:
           echo ""
           echo "════════════════════════════════════════════════════════════════"
       
+      - name: Upload Build Logs as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildozer-logs
+          path: buildozer_build_*.log
+          if-no-files-found: warn
+          retention-days: 5
+      
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
