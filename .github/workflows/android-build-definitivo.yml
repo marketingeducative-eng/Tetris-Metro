@@ -1,0 +1,376 @@
+name: Definitivo - Compilar APK Android
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  BUILDOZER_VERSION: ">=1.4.0"
+  NDK_VERSION: "25b"
+  GRADLE_OPTS: "-Xmx1024m"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # ========================================================================
+      # STEP 0: Checkout Repository
+      # ========================================================================
+      - name: "🔄 Checkout Repository"
+        uses: actions/checkout@v4
+
+      # ========================================================================
+      # STEP 1: Setup Python Environment
+      # ========================================================================
+      - name: "🐍 Setup Python 3.10"
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      # ========================================================================
+      # STEP 2: Install System Dependencies
+      # ========================================================================
+      - name: "📦 Install System Dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            openjdk-17-jdk-headless \
+            openjdk-17-jre-headless \
+            android-sdk \
+            build-essential \
+            libssl-dev \
+            libffi-dev \
+            libjpeg-dev \
+            zlib1g-dev \
+            libncurses5-dev \
+            libreadline-dev \
+            libbz2-dev \
+            libsqlite3-dev \
+            llvm \
+            libllvm-dev \
+            wget \
+            unzip \
+            git \
+            cython==0.29.36
+
+      # ========================================================================
+      # STEP 3: Configure Java Environment
+      # ========================================================================
+      - name: "☕ Configure Java Environment"
+        run: |
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH" >> $GITHUB_ENV
+
+      # ========================================================================
+      # STEP 4: Install Python Build Tools
+      # ========================================================================
+      - name: "⚙️ Install Python Build Tools"
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install "buildozer>=1.4.0" cython==0.29.36
+
+      # ========================================================================
+      # STEP 5: Setup Android SDK
+      # ========================================================================
+      - name: "📱 Setup Android SDK"
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform
+          
+          # Download Android SDK command-line tools
+          mkdir -p $HOME/.android/cmdline-tools
+          cd $HOME/.android/cmdline-tools
+          
+          if [ ! -f "tools/bin/sdkmanager" ]; then
+            echo "Downloading Android SDK command-line tools..."
+            wget -q "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
+            unzip -q -o "commandlinetools-linux-9477386_latest.zip"
+            rm "commandlinetools-linux-9477386_latest.zip"
+          fi
+          
+          export ANDROID_SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+          mkdir -p "$ANDROID_SDK_ROOT"
+          
+          # Accept licenses
+          yes | $HOME/.android/cmdline-tools/tools/bin/sdkmanager \
+            --sdk_root="$ANDROID_SDK_ROOT" \
+            "platforms;android-31" \
+            "build-tools;37.0.0" \
+            "cmake;3.22.1" \
+            > /dev/null 2>&1 || true
+
+      # ========================================================================
+      # STEP 6: Download and Extract NDK r25b
+      # ========================================================================
+      - name: "📥 Download and Extract NDK r25b"
+        run: |
+          NDK_DIR="$HOME/.buildozer/android/platform/android-ndk-r25b"
+          
+          if [ ! -d "$NDK_DIR" ]; then
+            echo "Downloading Android NDK r25b..."
+            mkdir -p "$HOME/.buildozer/android/platform"
+            cd "$HOME/.buildozer/android/platform"
+            
+            wget -q "https://dl.google.com/android/repository/android-ndk-r25b-linux.zip"
+            echo "Extracting NDK..."
+            unzip -q -o "android-ndk-r25b-linux.zip"
+            rm "android-ndk-r25b-linux.zip"
+            
+            # Verify extraction
+            if [ ! -d "$NDK_DIR" ]; then
+              echo "❌ NDK extraction failed"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ NDK r25b ready at: $NDK_DIR"
+          ls -lh "$NDK_DIR" | head -5
+
+      # ========================================================================
+      # STEP 7: Create NDK Compatibility Symlink
+      # ========================================================================
+      - name: "🔗 Create NDK Compatibility Symlink"
+        run: |
+          NDK_DIR="$HOME/.buildozer/android/platform/android-ndk-r25b"
+          
+          # Create platforms directory and symlink for p4a compatibility
+          mkdir -p "$NDK_DIR/platforms"
+          
+          # Remove existing symlink if any
+          rm -f "$NDK_DIR/platforms/android-21"
+          
+          # Create symlink
+          ln -sf "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/sysroot" \
+                 "$NDK_DIR/platforms/android-21"
+          
+          # Verify
+          if [ -L "$NDK_DIR/platforms/android-21" ]; then
+            echo "✅ Symlink created successfully"
+            ls -lh "$NDK_DIR/platforms/android-21"
+          else
+            echo "❌ Symlink creation failed"
+            exit 1
+          fi
+          
+          # Verify clang
+          if [ -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ] || \
+             [ -L "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]; then
+            echo "✅ clang compiler is available"
+          else
+            echo "❌ clang compiler not found"
+            exit 1
+          fi
+
+      # ========================================================================
+      # STEP 8: Purge Runner's Preinstalled NDK (CRITICAL)
+      # ========================================================================
+      - name: "🧹 Purge Runner's Preinstalled NDK (CRITICAL)"
+        env:
+          ANDROID_NDK: ""
+          ANDROID_NDK_LATEST_HOME: ""
+          ANDROID_NDK_ROOT: ""
+        run: |
+          echo "⚠️  Clearing any runner's preinstalled NDK variables..."
+          
+          # Explicitly unset runner's NDK if it exists
+          unset ANDROID_NDK
+          unset ANDROID_NDK_LATEST_HOME
+          unset ANDROID_NDK_ROOT
+          
+          # Remove common NDK locations that runner might have set
+          rm -rf /usr/local/lib/android/sdk/ndk/* 2>/dev/null || true
+          
+          echo "✅ Runner NDK cleaned"
+
+      # ========================================================================
+      # STEP 9: Setup Build Environment Variables
+      # ========================================================================
+      - name: "⚙️ Setup Build Environment Variables"
+        run: |
+          # Set all required environment variables
+          echo "ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "ANDROID_NDK_LATEST_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "GRADLE_OPTS=-Xmx1024m" >> $GITHUB_ENV
+          
+          echo "✅ Environment variables set"
+
+      # ========================================================================
+      # STEP 10: Verify Build Configuration
+      # ========================================================================
+      - name: "🔍 Verify Build Configuration"
+        run: |
+          echo "================================"
+          echo "BUILD CONFIGURATION CHECK"
+          echo "================================"
+          
+          # Check buildozer version
+          BUILDOZER_VERSION=$(python3 -m pip show buildozer | grep Version | awk '{print $2}')
+          echo "✅ Buildozer version: $BUILDOZER_VERSION"
+          
+          # Check buildozer.spec critical settings
+          echo ""
+          echo "buildozer.spec (critical sections):"
+          grep -E "^(p4a.setup_py|android.archs|android.ndk |Cython==|pyjnius==)" buildozer.spec || true
+          
+          # Check environment variables
+          echo ""
+          echo "Environment Variables:"
+          echo "  ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
+          echo "  ANDROID_NDK=${ANDROID_NDK}"
+          echo "  ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
+          
+          # Check NDK directory
+          echo ""
+          echo "NDK Structure:"
+          ls -lh "${ANDROID_NDK_HOME}/platforms/android-21" && echo "  ✅ platforms/android-21 symlink OK" || echo "  ❌ FAILED"
+          
+          [ -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ] && echo "  ✅ clang available" || echo "  ⚠️  clang might be symlink"
+          
+          echo ""
+          echo "================================"
+
+      # ========================================================================
+      # STEP 11: Clean Previous Build Artifacts
+      # ========================================================================
+      - name: "🧹 Clean Previous Build Artifacts"
+        run: |
+          echo "Cleaning old build artifacts..."
+          buildozer -v android clean
+          rm -rf .buildozer/android/platform/build-arm64-v8a/dists/metrotetris 2>/dev/null || true
+          rm -rf bin/ 2>/dev/null || true
+          echo "✅ Cleaned"
+
+      # ========================================================================
+      # STEP 12: Build APK
+      # ========================================================================
+      - name: "🔨 Build APK with Buildozer"
+        env:
+          ANDROID_NDK: "${{ env.ANDROID_NDK_HOME }}"
+          ANDROID_NDK_LATEST_HOME: "${{ env.ANDROID_NDK_HOME }}"
+          ANDROID_NDK_ROOT: "${{ env.ANDROID_NDK_HOME }}"
+        run: |
+          echo "Starting buildozer APK build..."
+          echo "BuildOzer command: buildozer -v android debug"
+          echo ""
+          
+          # Run buildozer with verbose output
+          buildozer -v android debug 2>&1 | tee build.log
+          
+          BUILD_RESULT=${PIPESTATUS[0]}
+          
+          if [ $BUILD_RESULT -eq 0 ]; then
+            echo ""
+            echo "================================"
+            echo "✅ BUILD SUCCESSFUL!"
+            echo "================================"
+            
+            # List output APK
+            if [ -f "bin/metrotetris-0.1-debug.apk" ]; then
+              echo "APK file created: bin/metrotetris-0.1-debug.apk"
+              ls -lh bin/metrotetris-0.1-debug.apk
+            fi
+          else
+            echo ""
+            echo "================================"
+            echo "❌ BUILD FAILED"
+            echo "================================"
+            echo "Exit code: $BUILD_RESULT"
+            
+            # Print last 100 lines of build output
+            echo ""
+            echo "Last 100 lines of build output:"
+            tail -100 build.log
+            
+            # Check for Gradle error
+            if grep -q "Unsupported class file major version 65" build.log; then
+              echo ""
+              echo "⚠️  DETECTED: NDK v27 was used (class file major version 65)"
+              echo "Solution: Ensure ANDROID_NDK environment variable is set correctly"
+            fi
+            
+            exit $BUILD_RESULT
+          fi
+
+      # ========================================================================
+      # STEP 13: Upload APK Artifact
+      # ========================================================================
+      - name: "📤 Upload APK Artifact"
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-debug-apk
+          path: bin/metrotetris-0.1-debug.apk
+          retention-days: 30
+
+      # ========================================================================
+      # STEP 14: Upload Build Logs
+      # ========================================================================
+      - name: "📤 Upload Build Logs"
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-logs
+          path: |
+            build.log
+            .buildozer/android/platform/build-arm64-v8a/buildozer.build.*.log
+          retention-days: 7
+
+      # ========================================================================
+      # STEP 15: Build Summary
+      # ========================================================================
+      - name: "📊 Build Summary"
+        if: success()
+        run: |
+          echo "" 
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║            ✅ APK BUILD SUCCESSFUL                         ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📦 Output:"
+          ls -lh bin/metrotetris-0.1-debug.apk
+          echo ""
+          echo "📥 Artifact download:"
+          echo "   Available as 'android-debug-apk' in workflow artifacts"
+          echo ""
+          echo "🔗 Workflow details:"
+          echo "   Run ID: ${{ github.run_id }}"
+          echo "   Branch: ${{ github.ref }}"
+          echo "   Commit: ${{ github.sha }}"
+
+      # ========================================================================
+      # STEP 16: Build Failure Diagnostics
+      # ========================================================================
+      - name: "🔍 Build Failure Diagnostics"
+        if: failure()
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║            ❌ BUILD FAILED - DIAGNOSTICS                   ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          echo ""
+          
+          echo "1️⃣  Environment Variables:"
+          echo "   ANDROID_NDK=${ANDROID_NDK}"
+          echo "   ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
+          echo "   ANDROID_HOME=${ANDROID_HOME}"
+          echo ""
+          
+          echo "2️⃣  NDK Structure:"
+          ls -lh "${ANDROID_NDK_HOME}/platforms/" 2>/dev/null || echo "   ❌ platforms/ not found"
+          echo ""
+          
+          echo "3️⃣  Last 50 lines of build.log:"
+          tail -50 build.log
+          echo ""
+          
+          echo "4️⃣  Buildozer log:"
+          cat .buildozer/android/log_buildozer.txt 2>/dev/null | tail -50 || echo "   (No buildozer log available)"

@@ -71,6 +71,7 @@ export ANDROIDNDK="${ANDROID_NDK_ROOT}"
 export ANDROIDAPI="31"
 export ANDROIDNDK_API="21"
 export ANDROIDNDKVER="r25b"
+export CYTHON_LANGUAGE_LEVEL="${CYTHON_LANGUAGE_LEVEL:-3}"
 
 echo "[Phase 1/3] Building pyjnius recipe with p4a ($ARCH)..."
 echo ""

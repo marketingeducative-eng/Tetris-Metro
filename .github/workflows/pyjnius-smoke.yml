@@ -82,9 +82,19 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo "SANITIZING NDK/SDK ENVIRONMENT (Removing runner pollution)"
           echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "[BEFORE - Runner pollution:]"
+          echo "  ANDROID_NDK=${ANDROID_NDK:-UNSET}"
+          echo "  ANDROID_NDK_LATEST_HOME=${ANDROID_NDK_LATEST_HOME:-UNSET}"
+          echo "  ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT:-UNSET}"
+          echo ""
           
-          # Unset runner-supplied variables
-          unset ANDROID_NDK ANDROID_NDK_LATEST_HOME ANDROID_HOME || true
+          # Unset ALL runner-supplied NDK/SDK variables
+          unset ANDROID_NDK || true
+          unset ANDROID_NDK_LATEST_HOME || true
+          unset ANDROID_NDK_ROOT || true
+          unset ANDROID_HOME || true
+          unset ANDROID_SDK_ROOT || true
           
           # Set buildozer-controlled paths
           export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
@@ -99,7 +109,18 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
           
-          echo "✓ Environment sanitized"
+          echo ""
+          echo "[AFTER - Buildozer exclusive:]"
+          echo "  ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+          echo "  ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          
+          # Verify runner NDKs gone
+          if [ -n "${ANDROID_NDK:-}" ]; then
+            echo "❌ CRITICAL: Runner ANDROID_NDK still set"
+            exit 1
+          fi
+          echo "✓ Runner NDK pollution removed"
+          echo "✓ Environment sanitized for p4a r25b"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
       
@@ -117,6 +138,11 @@ jobs:
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --version
+          
+          # Create symlink for buildozer compatibility (expects tools/bin/sdkmanager)
+          mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
+          ln -sf "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
+          echo "✓ Created tools/bin symlink for buildozer compatibility"
       
       - name: Accept Android SDK licenses + install required packages
         shell: bash
@@ -129,6 +155,13 @@ jobs:
             "platform-tools" \
             "platforms;android-31" \
             "build-tools;31.0.0"
+
+      - name: Enforce Cython language level (Py3)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CYTHON_LANGUAGE_LEVEL=3" >> "$GITHUB_ENV"
+          echo "✓ CYTHON_LANGUAGE_LEVEL=3 configured for all subsequent steps"
       
       - name: Download and install Android NDK r25b
         shell: bash
@@ -137,6 +170,15 @@ jobs:
           echo "════════════════════════════════════════════════════════════════"
           echo "DOWNLOADING ANDROID NDK r25b (Smoke Test Prerequisite)"
           echo "════════════════════════════════════════════════════════════════"
+          echo ""
+          
+          # CRITICAL: Verify no runner NDK pollution
+          if [ -n "${ANDROID_NDK:-}" ]; then
+            echo "❌ CRITICAL: ANDROID_NDK still set (runner NDK 27/29)"
+            echo "   Value: $ANDROID_NDK"
+            exit 1
+          fi
+          echo "✓ Runner NDK confirmed absent"
           echo ""
           
           NDK_PLATFORM_DIR="$HOME/.buildozer/android/platform"
@@ -188,6 +230,14 @@ jobs:
           "$CLANG" --version | head -1
           echo ""
           
+          # Verify NDK supports ndk-api=21
+          if [ ! -d "$NDK_DIR/platforms/android-21" ]; then
+            echo "❌ CRITICAL: NDK r25b missing platforms/android-21"
+            exit 1
+          fi
+          echo "✓ NDK r25b supports ndk-api=21"
+          echo ""
+          
           echo "✅ NDK r25b ready for p4a toolchain"
           echo "════════════════════════════════════════════════════════════════"
           echo ""
@@ -199,6 +249,7 @@ jobs:
         id: smoke_test
         continue-on-error: true
         run: |
+          export CYTHON_LANGUAGE_LEVEL="${CYTHON_LANGUAGE_LEVEL:-3}"
           echo "════════════════════════════════════════════════════════════════"
           echo "SMOKE TEST: pyjnius Compilation Validation"
           echo "════════════════════════════════════════════════════════════════"
